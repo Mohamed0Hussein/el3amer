@@ -1,60 +1,75 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
+import React from 'react';
+import { Text, TextProps } from 'react-native';
 
-import { useThemeColor } from '@/hooks/use-theme-color';
+interface ThemedTextProps extends TextProps {
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'inverse' | 'success' | 'error';
+  size?: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl';
+  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
+}
 
-export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
-};
+export const ThemedText: React.FC<ThemedTextProps> = ({ 
+  style, 
+  variant = 'primary',
+  size = 'base',
+  weight = 'normal',
+  ...props 
+}) => {
+  const { theme } = useTheme();
 
-export function ThemedText({
-  style,
-  lightColor,
-  darkColor,
-  type = 'default',
-  ...rest
-}: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const getTextColor = () => {
+    switch (variant) {
+      case 'primary':
+        return theme.text.primary;
+      case 'secondary':
+        return theme.text.secondary;
+      case 'tertiary':
+        return theme.text.tertiary;
+      case 'inverse':
+        return theme.text.inverse;
+      case 'success':
+        return theme.status.success;
+      case 'error':
+        return theme.status.error;
+      default:
+        return theme.text.primary;
+    }
+  };
+
+  const getFontSize = () => {
+    switch (size) {
+      case 'xs': return 12;
+      case 'sm': return 14;
+      case 'base': return 16;
+      case 'lg': return 18;
+      case 'xl': return 20;
+      case '2xl': return 24;
+      case '3xl': return 30;
+      default: return 16;
+    }
+  };
+
+  const getFontWeight = () => {
+    switch (weight) {
+      case 'normal': return '400';
+      case 'medium': return '500';
+      case 'semibold': return '600';
+      case 'bold': return '700';
+      default: return '400';
+    }
+  };
 
   return (
     <Text
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        {
+          color: getTextColor(),
+          fontSize: getFontSize(),
+          fontWeight: getFontWeight(),
+        },
         style,
       ]}
-      {...rest}
+      {...props}
     />
   );
-}
-
-const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
-  },
-});
+};
