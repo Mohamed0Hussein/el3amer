@@ -2,7 +2,7 @@ import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useCartContext } from '@/context/CartContext';
-import { FavoritesProvider, useFavorites } from '@/context/FavoritesContext';
+import { useFavorites } from '@/context/FavoritesContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Category } from '@/types/Category';
 import { Product } from '@/types/Product';
@@ -110,7 +110,6 @@ export default function App() {
 
 
   return (
-    <FavoritesProvider>
       <ThemedView variant="primary" style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
         
@@ -181,7 +180,6 @@ export default function App() {
 
         {/* Bottom Navigation */}
       </ThemedView>
-    </FavoritesProvider>
   );
 }
 

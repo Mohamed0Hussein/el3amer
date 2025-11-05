@@ -1,6 +1,7 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useTheme } from '@/hooks/useTheme';
 import { CartItem } from '@/types/CardItem';
@@ -16,7 +17,6 @@ const Cart = () => {
     cart,
     updateCartQuantity,
     removeFromCart,
-    setCurrentScreen,
   } = useCartContext();
   const cartTotal = cart.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
   const cartItemCount = cart.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
@@ -45,10 +45,8 @@ const Cart = () => {
             Add some products to get started
           </ThemedText>
           <TouchableOpacity
-            style={[styles.startShoppingButton, { backgroundColor: theme.primary[500] }]}
-            onPress={() => setCurrentScreen('home')}
-          >
-            <ThemedButton variant="primary" size='sm' style={styles.startShoppingText} onPress={() => navigation.navigate('Profile' as never)}>
+            style={[styles.startShoppingButton, { backgroundColor: theme.primary[500] }]}>
+            <ThemedButton variant="primary" size='sm' style={styles.startShoppingText} onPress={() => navigation.navigate(ROUTES.HOME as never)}>
               Start Shopping
             </ThemedButton>
           </TouchableOpacity>
