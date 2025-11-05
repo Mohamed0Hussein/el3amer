@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "SupermarketApp",
-    "slug": "supermarket-app",
-    "scheme": "supermarket",
+    "name": "El3amer",
+    "slug": "El3amer",
+    "scheme": "com.el3amer.app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#22c55e"
     },
@@ -17,17 +17,23 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.supermarket.app"
+      "bundleIdentifier": "com.el3amer.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#22c55e"
       },
-      "package": "com.supermarket.app"
+      "package": "com.el3amer.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e526ceed-5006-4825-be6a-d557d73b1cb4"
+      }
+    },
+    "owner": "mohamed0x1hussein"
   }
 }
