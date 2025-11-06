@@ -4,15 +4,18 @@ import { ROUTES } from "@/constants/routes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CartContextProvider, useCartContext } from "@/context/CartContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
+import { LocalizationProvider, useLocalization } from "@/context/LocalizationContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { capitalize } from 'lodash';
+ 
+import { ActivityIndicator } from "react-native";
 import CartScreen from "./cart";
 import HomeScreen from "./index";
 import LoginScreen from "./login";
 import ProfileScreen from "./profile";
+import SettingsScreen from "./settings";
 import SignUpScreen from "./signup";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -20,6 +23,7 @@ const Stack = createNativeStackNavigator();
 // Main app tabs (protected routes)
 function MainAppTabs() {
   const { theme } = useTheme();
+  const { t } = useLocalization();
 
   return (
     <Tab.Navigator
@@ -39,7 +43,7 @@ function MainAppTabs() {
         name={ROUTES.HOME}
         component={HomeScreen}
         options={{
-          tabBarLabel : capitalize(ROUTES.HOME),
+          tabBarLabel : t('home'),
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
@@ -55,7 +59,7 @@ function MainAppTabs() {
         name={ROUTES.CART}
         component={CartScreen}
         options={{
-          tabBarLabel : capitalize(ROUTES.CART),
+          tabBarLabel : t('cart'),
           tabBarIcon: ({ focused, color, size }) => (
             <CartTabIcon color={color} size={size} focused={focused} />
           ),
@@ -66,7 +70,7 @@ function MainAppTabs() {
         name={ROUTES.PROFILE}
         component={ProfileScreen}
         options={{
-          tabBarLabel:capitalize(ROUTES.PROFILE),
+          tabBarLabel: t('profile'),
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
@@ -95,13 +99,24 @@ function AuthStack() {
 
 // Root navigator that switches between auth and main app
 function RootNavigator() {
-  const { isAuthenticated } = useAuth();
-  // const isAuthenticated = true
+  const { isAuthenticated, isHydrating } = useAuth();
 
+  if (isHydrating) {
+    return <LoadingScreen />;
+  }
+
+  // Use key prop to force remount when auth state changes
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      key={isAuthenticated ? 'authenticated' : 'unauthenticated'}
+      screenOptions={{ headerShown: false }}
+      initialRouteName={isAuthenticated ? ROUTES.APP : ROUTES.AUTH}
+    >
       {isAuthenticated ? (
-        <Stack.Screen name={ROUTES.HOME} component={MainAppTabs} />
+        <>
+          <Stack.Screen name={ROUTES.APP} component={MainAppTabs} />
+          <Stack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />
+        </>
       ) : (
         <Stack.Screen name={ROUTES.AUTH} component={AuthStack} />
       )}
@@ -169,12 +184,26 @@ export default function RootLayout() {
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <AuthProvider>
-      <FavoritesProvider>
-        <CartContextProvider>
-          {children}
-        </CartContextProvider>
-      </FavoritesProvider>
-    </AuthProvider>
+    <LocalizationProvider>
+      <AuthProvider>
+        <FavoritesProvider>
+          <CartContextProvider>
+            {children}
+          </CartContextProvider>
+        </FavoritesProvider>
+      </AuthProvider>
+    </LocalizationProvider>
   );
 }
+
+const LoadingScreen = () => {
+  const { theme } = useTheme();
+  return (
+    <ThemedView
+      style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background.primary }}
+    >
+      <ActivityIndicator size="large" color={theme.primary[500]} />
+      <ThemedText style={{ marginTop: 12 }} variant="secondary">Loading...</ThemedText>
+    </ThemedView>
+  );
+};

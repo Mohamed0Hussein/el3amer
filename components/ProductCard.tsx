@@ -1,6 +1,7 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useCartContext } from '@/context/CartContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +12,7 @@ const { width } = Dimensions.get('window');
 export const ProductCard = ({ product }: { product: any }) => {
   const { addToCart, favorites, toggleFavorite } = useCartContext();
   const { theme } = useTheme();
+  const { t } = useLocalization();
 
   return (
     <ThemedView variant="card" style={styles.productCard}>
@@ -52,7 +54,7 @@ export const ProductCard = ({ product }: { product: any }) => {
         onPress={() => addToCart(product)}
         style={styles.addButton}
       >
-        Add to Cart
+        {t('addToCart')}
       </ThemedButton>
     </ThemedView>
   );

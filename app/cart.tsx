@@ -3,6 +3,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { CartItem } from '@/types/CardItem';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ const Cart = () => {
   const cartTotal = cart.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
   const cartItemCount = cart.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
   const { theme } = useTheme();
+  const { t } = useLocalization();
 
   return (
     <ThemedView variant="primary" style={styles.container}>
@@ -30,7 +32,7 @@ const Cart = () => {
           <Ionicons name="arrow-back" size={24} color={theme.text.inverse} />
         </TouchableOpacity> */}
         <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
-          Shopping Cart
+          {t('shoppingCart')}
         </ThemedText>
       </ThemedView>
 
@@ -39,15 +41,15 @@ const Cart = () => {
         <ThemedView variant="default" style={styles.emptyCart}>
           <Ionicons name="cart-outline" size={80} color={theme.gray[300]} />
           <ThemedText variant="primary" size="xl" weight="semibold" style={styles.emptyCartTitle}>
-            Your cart is empty
+            {t('yourCartIsEmpty')}
           </ThemedText>
           <ThemedText variant="tertiary" size="base" style={styles.emptyCartText}>
-            Add some products to get started
+            {t('addProductsToGetStarted')}
           </ThemedText>
           <TouchableOpacity
             style={[styles.startShoppingButton, { backgroundColor: theme.primary[500] }]}>
             <ThemedButton variant="primary" size='sm' style={styles.startShoppingText} onPress={() => navigation.navigate(ROUTES.HOME as never)}>
-              Start Shopping
+              {t('startShopping')}
             </ThemedButton>
           </TouchableOpacity>
         </ThemedView>
@@ -105,7 +107,7 @@ const Cart = () => {
           <ThemedView variant="secondary" style={styles.checkoutContainer}>
             <ThemedView variant="default" style={styles.totalContainer}>
               <ThemedText variant="secondary" size="lg" weight="semibold" style={styles.totalLabel}>
-                Total:
+                {t('total')}:
               </ThemedText>
               <ThemedText variant="success" size="2xl" weight="bold" style={styles.totalAmount}>
                 ${cartTotal.toFixed(2)}
@@ -115,7 +117,7 @@ const Cart = () => {
               style={[styles.checkoutButton, { backgroundColor: theme.primary[500] }]}
             >
               <ThemedText variant="inverse" size="lg" weight="bold" style={styles.checkoutButtonText}>
-                Proceed to Checkout
+                {t('proceedToCheckout')}
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>

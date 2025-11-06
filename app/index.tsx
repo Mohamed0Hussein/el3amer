@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useTheme } from '@/hooks/useTheme';
+import { useLocalization } from '@/context/LocalizationContext';
 import { Category } from '@/types/Category';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,43 +28,45 @@ export default function App() {
   const { favorites, toggleFavorite } = useFavorites();
   const { addToCart, cart } = useCartContext();
   const { theme } = useTheme();
+  const { t } = useLocalization();
 
   const categories: Category[] = [
-    { id: 'all', name: 'All', icon: 'apps-outline' },
-    { id: 'fruits', name: 'Fruits', icon: 'leaf-outline' },
-    { id: 'vegetables', name: 'Vegetables', icon: 'nutrition-outline' },
-    { id: 'dairy', name: 'Dairy', icon: 'water-outline' },
-    { id: 'meat', name: 'Meat', icon: 'restaurant-outline' },
-    { id: 'bakery', name: 'Bakery', icon: 'cafe-outline' },
-    { id: 'snacks', name: 'Snacks', icon: 'fast-food-outline' },
-    { id: 'beverages', name: 'Beverages', icon: 'beer-outline' },
+    { id: 'all', name: t('cat_all'), icon: 'apps-outline' },
+    { id: 'fruits', name: t('cat_fruits'), icon: 'leaf-outline' },
+    { id: 'vegetables', name: t('cat_vegetables'), icon: 'nutrition-outline' },
+    { id: 'dairy', name: t('cat_dairy'), icon: 'water-outline' },
+    { id: 'meat', name: t('cat_meat'), icon: 'restaurant-outline' },
+    { id: 'bakery', name: t('cat_bakery'), icon: 'cafe-outline' },
+    { id: 'snacks', name: t('cat_snacks'), icon: 'fast-food-outline' },
+    { id: 'beverages', name: t('cat_beverages'), icon: 'beer-outline' },
   ];
 
-  const products: Product[] = [
-    { id: 1, name: 'Fresh Apples', category: 'fruits', price: 3.99, unit: 'lb', emoji: '🍎', stock: 50 },
-    { id: 2, name: 'Organic Bananas', category: 'fruits', price: 2.49, unit: 'lb', emoji: '🍌', stock: 45 },
-    { id: 3, name: 'Fresh Carrots', category: 'vegetables', price: 1.99, unit: 'lb', emoji: '🥕', stock: 30 },
-    { id: 4, name: 'Broccoli', category: 'vegetables', price: 2.79, unit: 'lb', emoji: '🥦', stock: 25 },
-    { id: 5, name: 'Whole Milk', category: 'dairy', price: 4.29, unit: 'gal', emoji: '🥛', stock: 20 },
-    { id: 6, name: 'Cheddar Cheese', category: 'dairy', price: 5.99, unit: 'lb', emoji: '🧀', stock: 15 },
-    { id: 7, name: 'Chicken Breast', category: 'meat', price: 7.99, unit: 'lb', emoji: '🍗', stock: 18 },
-    { id: 8, name: 'Ground Beef', category: 'meat', price: 6.49, unit: 'lb', emoji: '🥩', stock: 22 },
-    { id: 9, name: 'White Bread', category: 'bakery', price: 2.99, unit: 'loaf', emoji: '🍞', stock: 35 },
-    { id: 10, name: 'Croissants', category: 'bakery', price: 4.49, unit: 'pack', emoji: '🥐', stock: 12 },
-    { id: 11, name: 'Chocolate Cookies', category: 'snacks', price: 3.49, unit: 'pack', emoji: '🍪', stock: 40 },
-    { id: 12, name: 'Potato Chips', category: 'snacks', price: 2.99, unit: 'bag', emoji: '🥔', stock: 50 },
-    { id: 13, name: 'Orange Juice', category: 'beverages', price: 4.99, unit: 'bottle', emoji: '🧃', stock: 28 },
-    { id: 14, name: 'Cola', category: 'beverages', price: 5.49, unit: '12-pack', emoji: '🥤', stock: 33 },
-    { id: 15, name: 'Fresh Oranges', category: 'fruits', price: 4.29, unit: 'lb', emoji: '🍊', stock: 38 },
-    { id: 16, name: 'Strawberries', category: 'fruits', price: 5.99, unit: 'pack', emoji: '🍓', stock: 20 },
-    { id: 17, name: 'Tomatoes', category: 'vegetables', price: 3.49, unit: 'lb', emoji: '🍅', stock: 42 },
-    { id: 18, name: 'Greek Yogurt', category: 'dairy', price: 6.49, unit: 'pack', emoji: '🥄', stock: 28 },
+  const products: Array<Product & { nameKey: keyof typeof import('@/localization/translations').translations['en']; unitKey: keyof typeof import('@/localization/translations').translations['en']; }> = [
+    { id: 1, name: 'Fresh Apples', nameKey: 'prod_freshApples', category: 'fruits', price: 3.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🍎', stock: 50 },
+    { id: 2, name: 'Organic Bananas', nameKey: 'prod_organicBananas', category: 'fruits', price: 2.49, unit: 'lb', unitKey: 'unit_lb', emoji: '🍌', stock: 45 },
+    { id: 3, name: 'Fresh Carrots', nameKey: 'prod_freshCarrots', category: 'vegetables', price: 1.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🥕', stock: 30 },
+    { id: 4, name: 'Broccoli', nameKey: 'prod_broccoli', category: 'vegetables', price: 2.79, unit: 'lb', unitKey: 'unit_lb', emoji: '🥦', stock: 25 },
+    { id: 5, name: 'Whole Milk', nameKey: 'prod_wholeMilk', category: 'dairy', price: 4.29, unit: 'gal', unitKey: 'unit_gal', emoji: '🥛', stock: 20 },
+    { id: 6, name: 'Cheddar Cheese', nameKey: 'prod_cheddarCheese', category: 'dairy', price: 5.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🧀', stock: 15 },
+    { id: 7, name: 'Chicken Breast', nameKey: 'prod_chickenBreast', category: 'meat', price: 7.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🍗', stock: 18 },
+    { id: 8, name: 'Ground Beef', nameKey: 'prod_groundBeef', category: 'meat', price: 6.49, unit: 'lb', unitKey: 'unit_lb', emoji: '🥩', stock: 22 },
+    { id: 9, name: 'White Bread', nameKey: 'prod_whiteBread', category: 'bakery', price: 2.99, unit: 'loaf', unitKey: 'unit_loaf', emoji: '🍞', stock: 35 },
+    { id: 10, name: 'Croissants', nameKey: 'prod_croissants', category: 'bakery', price: 4.49, unit: 'pack', unitKey: 'unit_pack', emoji: '🥐', stock: 12 },
+    { id: 11, name: 'Chocolate Cookies', nameKey: 'prod_chocolateCookies', category: 'snacks', price: 3.49, unit: 'pack', unitKey: 'unit_pack', emoji: '🍪', stock: 40 },
+    { id: 12, name: 'Potato Chips', nameKey: 'prod_potatoChips', category: 'snacks', price: 2.99, unit: 'pack', unitKey: 'unit_pack', emoji: '🥔', stock: 50 },
+    { id: 13, name: 'Orange Juice', nameKey: 'prod_orangeJuice', category: 'beverages', price: 4.99, unit: 'bottle', unitKey: 'unit_bottle', emoji: '🧃', stock: 28 },
+    { id: 14, name: 'Cola', nameKey: 'prod_cola', category: 'beverages', price: 5.49, unit: '12-pack', unitKey: 'unit_12pack', emoji: '🥤', stock: 33 },
+    { id: 15, name: 'Fresh Oranges', nameKey: 'prod_freshOranges', category: 'fruits', price: 4.29, unit: 'lb', unitKey: 'unit_lb', emoji: '🍊', stock: 38 },
+    { id: 16, name: 'Strawberries', nameKey: 'prod_strawberries', category: 'fruits', price: 5.99, unit: 'pack', unitKey: 'unit_pack', emoji: '🍓', stock: 20 },
+    { id: 17, name: 'Tomatoes', nameKey: 'prod_tomatoes', category: 'vegetables', price: 3.49, unit: 'lb', unitKey: 'unit_lb', emoji: '🍅', stock: 42 },
+    { id: 18, name: 'Greek Yogurt', nameKey: 'prod_greekYogurt', category: 'dairy', price: 6.49, unit: 'pack', unitKey: 'unit_pack', emoji: '🥄', stock: 28 },
   ];
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const localizedName = t(product.nameKey).toLowerCase();
+      const matchesSearch = localizedName.includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   }, [selectedCategory, searchQuery]);
@@ -86,14 +89,14 @@ export default function App() {
         </TouchableOpacity>
       </ThemedView>
       <ThemedText variant="primary" size="sm" weight="semibold" style={styles.productName}>
-        {product.name}
+        {t(product.nameKey as any)}
       </ThemedText>
       <ThemedView style={styles.priceContainer}>
         <ThemedText variant="success" size="lg" weight="bold">
           ${product.price}
         </ThemedText>
         <ThemedText variant="tertiary" size="sm" style={styles.productUnit}>
-          /{product.unit}
+          /{t(product.unitKey as any)}
         </ThemedText>
       </ThemedView>
       <ThemedButton
@@ -102,7 +105,7 @@ export default function App() {
         onPress={() => addToCart(product)}
         style={styles.addButton}
       >
-        Add to Cart
+        {t('addToCart')}
       </ThemedButton>
     </ThemedView>
   );
@@ -117,13 +120,13 @@ export default function App() {
           {/* Header */}
           <ThemedView style={[styles.header, { backgroundColor: theme.primary[500] }]}>
             <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
-              Fresh Supermarket
+              {t('appTitle')}
             </ThemedText>
             <ThemedView style={[styles.searchContainer, { backgroundColor: theme.background.secondary }]}>
               <Ionicons name="search-outline" size={20} color={theme.gray[400]} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text.primary }]}
-                placeholder="Search products..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={theme.gray[400]}
