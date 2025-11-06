@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
+import { useLocalization } from '@/context/LocalizationContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -32,6 +33,7 @@ export default function SignUpScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const { loginWithGoogle } = useAuth()
+  const { t } = useLocalization();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -44,17 +46,17 @@ export default function SignUpScreen() {
     const { fullName, email, password, confirmPassword } = formData;
     
     if (!fullName || !email || !password || !confirmPassword) {
-      alert('Please fill in all fields');
+      alert(t('fillAllFields'));
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      alert(t('passwordsNoMatch'));
       return;
     }
 
     if (password.length < 6) {
-      alert('Password must be at least 6 characters');
+      alert(t('passwordMin'));
       return;
     }
 
@@ -97,17 +99,17 @@ export default function SignUpScreen() {
           {/* Header */}
           <View style={styles.header}>
             <ThemedText variant="primary" size="3xl" weight="bold" style={styles.title}>
-              Create Account
+              {t('createAccount')}
             </ThemedText>
             <ThemedText variant="tertiary" size="base" style={styles.subtitle}>
-              Sign up to get started
+              {t('signUpSubtitle')}
             </ThemedText>
           </View>
 
           {/* Form */}
           <View style={styles.form}>
             <ThemedTextInput
-              placeholder="Enter your full name"
+              placeholder={t('fullNamePlaceholder')}
               value={formData.fullName}
               onChangeText={(value) => handleInputChange('fullName', value)}
               style={styles.input}
@@ -116,7 +118,7 @@ export default function SignUpScreen() {
             />
 
             <ThemedTextInput
-              placeholder="Enter your email"
+              placeholder={t('emailPlaceholder')}
               value={formData.email}
               onChangeText={(value) => handleInputChange('email', value)}
               style={styles.input}
@@ -127,7 +129,7 @@ export default function SignUpScreen() {
             />
 
             <ThemedTextInput
-              placeholder="Create a password"
+              placeholder={t('createPasswordPlaceholder')}
               value={formData.password}
               onChangeText={(value) => handleInputChange('password', value)}
               secureTextEntry={!showPassword}
@@ -149,7 +151,7 @@ export default function SignUpScreen() {
             />
 
             <ThemedTextInput
-              placeholder="Confirm your password"
+              placeholder={t('confirmPasswordPlaceholder')}
               value={formData.confirmPassword}
               onChangeText={(value) => handleInputChange('confirmPassword', value)}
               secureTextEntry={!showConfirmPassword}
@@ -177,7 +179,7 @@ export default function SignUpScreen() {
               loading={isLoading}
               style={styles.signUpButton}
             >
-              Create Account
+              {t('createAccountCta')}
             </ThemedButton>
 
             {/* Divider */}
@@ -197,13 +199,13 @@ export default function SignUpScreen() {
             >
               {isGoogleLoading ? (
                 <ThemedText variant="secondary" size="base" weight="medium">
-                  Signing up...
+                  {t('signingUp')}
                 </ThemedText>
               ) : (
                 <>
                   <Ionicons name="logo-google" size={20} color={theme.primary[500]} />
                   <ThemedText variant="secondary" size="base" weight="medium" style={styles.googleButtonText}>
-                    Sign up with Google
+                    {t('signUpWithGoogle')}
                   </ThemedText>
                 </>
               )}
@@ -211,13 +213,13 @@ export default function SignUpScreen() {
 
             {/* Terms */}
             <ThemedText variant="tertiary" size="sm" style={styles.terms}>
-              By creating an account, you agree to our{' '}
+              {t('termsPrefix')}{' '}
               <ThemedText variant="success" size="sm" weight="medium">
-                Terms of Service
+                {t('termsOfService')}
               </ThemedText>{' '}
-              and{' '}
+              و{' '}
               <ThemedText variant="success" size="sm" weight="medium">
-                Privacy Policy
+                {t('privacyPolicy')}
               </ThemedText>
             </ThemedText>
           </View>
@@ -225,11 +227,11 @@ export default function SignUpScreen() {
           {/* Login Link */}
           <View style={styles.footer}>
             <ThemedText variant="tertiary" size="base">
-              Already have an account?{' '}
+              {t('alreadyHaveAccount')}{' '}
             </ThemedText>
             <TouchableOpacity onPress={handleLogin}>
               <ThemedText variant="success" size="base" weight="semibold">
-                Sign In
+                {t('signIn')}
               </ThemedText>
             </TouchableOpacity>
           </View>

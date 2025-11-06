@@ -1,4 +1,6 @@
+import { ROUTES } from "@/constants/routes";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { Image, ScrollView, StatusBar, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -6,12 +8,15 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
+import { useLocalization } from "@/context/LocalizationContext";
 import { useTheme } from "@/hooks/useTheme";
 
 export default function ProfileScreen() {
   const { favorites } = useFavorites();
   const { theme } = useTheme();
   const { user } = useAuth()
+  const navigation = useNavigation();
+  const { t } = useLocalization();
 
   return (
     <ThemedView variant="primary" style={styles.container}>
@@ -20,7 +25,7 @@ export default function ProfileScreen() {
         style={[styles.header, { backgroundColor: theme.primary[500] }]}
       >
         <ThemedText variant="inverse" size="2xl" weight="bold">
-          Profile
+          {t('profileTitle')}
         </ThemedText>
       </ThemedView>
 
@@ -32,7 +37,7 @@ export default function ProfileScreen() {
               variant="default"
               style={[styles.profileAvatar, { backgroundColor: theme.primary[100] }]}
             >
-              <Image src={user?.avatar} height={40} width={40} />
+              <Image source={{ uri: user?.avatar }} style={styles.avatarImage} />
             </ThemedView>
 
             <ThemedView variant="default" style={styles.profileInfo}>
@@ -60,7 +65,7 @@ export default function ProfileScreen() {
                 weight="semibold"
                 style={styles.menuItemText}
               >
-                My Orders
+                {t('myOrders')}
               </ThemedText>
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
@@ -73,7 +78,7 @@ export default function ProfileScreen() {
                 weight="semibold"
                 style={styles.menuItemText}
               >
-                Favorites ({favorites.length})
+                {t('favorites')} ({favorites.length})
               </ThemedText>
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
@@ -86,7 +91,7 @@ export default function ProfileScreen() {
                 weight="semibold"
                 style={styles.menuItemText}
               >
-                Delivery Address
+                {t('deliveryAddress')}
               </ThemedText>
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
@@ -99,12 +104,12 @@ export default function ProfileScreen() {
                 weight="semibold"
                 style={styles.menuItemText}
               >
-                Payment Methods
+                {t('paymentMethods')}
               </ThemedText>
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}>
+            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]} onPress={() => navigation.navigate(ROUTES.SETTINGS as never)}>
               <Ionicons name="settings-outline" size={24} color={theme.gray[500]} />
               <ThemedText
                 variant="secondary"
@@ -112,7 +117,7 @@ export default function ProfileScreen() {
                 weight="semibold"
                 style={styles.menuItemText}
               >
-                Settings
+                {t('settings')}
               </ThemedText>
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
@@ -157,6 +162,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 35,
+    resizeMode: "cover",
   },
   profileInfo: {
     flex: 1,

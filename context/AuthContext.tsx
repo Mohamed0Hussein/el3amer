@@ -1,5 +1,6 @@
 import { GoogleUserInfo, useGoogleAuth } from '@/services/googleAuth';
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
   id: string;
@@ -15,9 +16,11 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (fullName: string, email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
   isGoogleLoading: boolean;
+  isLoggingOut: boolean;
+  isHydrating: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,8 +33,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(true);
+  const STORAGE_KEY = '@auth:user';
   
   const { signInWithGoogle, isReady } = useGoogleAuth();
+
+  // Hydrate user from storage on app start
+  useEffect(() => {
+    const hydrate = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const savedUser: User = JSON.parse(raw);
+          setUser(savedUser);
+        }
+      } catch (e) {
+        console.warn('Failed to hydrate auth user', e);
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+    hydrate();
+     
+  }, []);
+
+  // Persist user to storage whenever it changes
+  useEffect(() => {
+    const persist = async () => {
+      try {
+        if (user) {
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        } else {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+        }
+      } catch (e) {
+        console.warn('Failed to persist auth user', e);
+      }
+    };
+    persist();
+  }, [user]);
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -44,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         fullName: 'John Doe',
         authProvider: 'email',
       });
-    } catch (error) {
+    } catch {
       throw new Error('Login failed');
     } finally {
       setIsLoading(false);
@@ -63,7 +104,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         fullName,
         authProvider: 'email',
       });
-    } catch (error) {
+    } catch {
       throw new Error('Signup failed');
     } finally {
       setIsLoading(false);
@@ -99,8 +140,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
+    setIsLoggingOut(true);
+    try {
+      // Simulate logout process (e.g., API call to invalidate token)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setUser(null);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn('Logout error:', error);
+      // Still clear user even if storage removal fails
+      setUser(null);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const value = {
@@ -112,6 +165,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isLoading,
     isGoogleLoading,
+    isLoggingOut,
+    isHydrating,
   };
 
   return (

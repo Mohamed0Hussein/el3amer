@@ -15,7 +15,7 @@ export const MAIN_TABS = {
 // Root Stack Routes
 export const ROOT_ROUTES = {
   AUTH: 'auth',
-  HOME: 'home'
+  APP: 'app'
 } as const;
 
 // All routes combined for easy access
@@ -23,4 +23,5 @@ export const ROUTES = {
   ...AUTH_ROUTES,
   ...MAIN_TABS,
   ...ROOT_ROUTES,
+  SETTINGS: 'settings',
 } as const;

@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
+import { useLocalization } from '@/context/LocalizationContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -26,10 +27,11 @@ export default function LoginScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const { loginWithGoogle, isGoogleLoading } = useAuth();
+  const { t } = useLocalization();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert('Please fill in all fields');
+      alert(t('fillAllFields'));
       return;
     }
 
@@ -56,19 +58,19 @@ export default function LoginScreen() {
           {/* Header */}
           <View style={styles.header}>
             <ThemedText variant="primary" size="3xl" weight="bold" style={styles.title}>
-              Welcome Back
+              {t('welcomeBack')}
             </ThemedText>
             <ThemedText variant="tertiary" size="base" style={styles.subtitle}>
-              Sign in to your account
+              {t('signInToAccount')}
             </ThemedText>
           </View>
 
           {/* Form */}
           <View style={styles.form}>
             <ThemedTextInput
-                label='Email'
+                label={t('emailLabel')}
                 icon='mail-outline'
-                placeholder="Enter your email"
+                placeholder={t('emailPlaceholder')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -78,9 +80,9 @@ export default function LoginScreen() {
             />
 
             <ThemedTextInput
-                label='Password'
+                label={t('passwordLabel')}
                 icon='lock-closed-outline'
-                placeholder="Enter your password"
+                placeholder={t('passwordPlaceholder')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -92,7 +94,7 @@ export default function LoginScreen() {
             />
             <TouchableOpacity style={styles.forgotPassword}>
               <ThemedText variant="success" size="sm" weight="medium">
-                Forgot Password?
+                {t('forgotPassword')}
               </ThemedText>
             </TouchableOpacity>
 
@@ -103,14 +105,14 @@ export default function LoginScreen() {
               loading={isLoading}
               style={styles.loginButton}
             >
-              Sign In
+              {t('signIn')}
             </ThemedButton>
 
             {/* Divider */}
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
               <ThemedText variant="tertiary" size="sm" style={styles.dividerText}>
-                Or continue with
+                {t('orContinueWith')}
               </ThemedText>
               <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
             </View>
@@ -124,14 +126,14 @@ export default function LoginScreen() {
               >
                 <Ionicons name="logo-google" size={20} color={theme.gray[600]} />
                 <ThemedText variant="secondary" size="sm" weight="medium" style={styles.socialText}>
-                  Google
+                  {t('google')}
                 </ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.socialButton, { backgroundColor: theme.background.card }]}>
                 <Ionicons name="logo-apple" size={20} color={theme.gray[600]} />
                 <ThemedText variant="secondary" size="sm" weight="medium" style={styles.socialText}>
-                  Apple
+                  {t('apple')}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -140,11 +142,11 @@ export default function LoginScreen() {
           {/* Sign Up Link */}
           <View style={styles.footer}>
             <ThemedText variant="tertiary" size="base">
-              Don't have an account?{' '}
+              {t('dontHaveAccount')}{' '}
             </ThemedText>
             <TouchableOpacity onPress={handleSignUp}>
               <ThemedText variant="success" size="base" weight="semibold">
-                Sign Up
+                {t('signUp')}
               </ThemedText>
             </TouchableOpacity>
           </View>
