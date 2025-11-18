@@ -177,8 +177,22 @@ const CartTabIcon = ({
 export default function RootLayout() {
   return (
     <AppProviders>
-      <RootNavigator />
+      <RtlWrapper>
+        <RootNavigator />
+      </RtlWrapper>
     </AppProviders>
+  );
+}
+
+// Wrapper component that remounts when RTL changes
+function RtlWrapper({ children }: { children: React.ReactNode }) {
+  const { isRtl } = useLocalization();
+  
+  // Force remount by using key based on RTL direction
+  return (
+    <ThemedView key={isRtl ? 'rtl' : 'ltr'} style={{ flex: 1 }}>
+      {children}
+    </ThemedView>
   );
 }
 

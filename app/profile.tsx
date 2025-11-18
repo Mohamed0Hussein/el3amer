@@ -18,6 +18,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { t } = useLocalization();
 
+  console.log(user);
   return (
     <ThemedView variant="primary" style={styles.container}>
       <ThemedView

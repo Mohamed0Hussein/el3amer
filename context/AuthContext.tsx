@@ -1,3 +1,4 @@
+import { getToken, login, logout, signup } from '@/services/auth';
 import { GoogleUserInfo, useGoogleAuth } from '@/services/googleAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
@@ -8,15 +9,16 @@ interface User {
   fullName: string;
   avatar?: string;
   authProvider: 'email' | 'google';
+  token: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (fullName: string, email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  logout: () => Promise<void>;
+  loginUser: (email: string, password: string) => Promise<void>;
+  signupUser: (fullName: string, email: string, password: string) => Promise<void>;
+  loginUserWithGoogle: () => Promise<User | undefined>;
+  logoutUser: () => Promise<void>;
   isLoading: boolean;
   isGoogleLoading: boolean;
   isLoggingOut: boolean;
@@ -73,45 +75,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     persist();
   }, [user]);
-  const login = async (email: string, password: string) => {
+
+  
+  const loginUser = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // login() already returns response.data, so response is the data object
+      const response = await login(email, password);
       
-      setUser({
-        id: '1',
-        email,
-        fullName: 'John Doe',
-        authProvider: 'email',
-      });
-    } catch {
-      throw new Error('Login failed');
+      // Handle different response structures
+      // If response has a 'data' property, use it, otherwise use response directly
+      const userData = (response as any).data || response;
+      setUser(userData as User);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      // Re-throw with a more descriptive message if available
+      const errorMessage = error?.message || 'Login failed';
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signup = async (fullName: string, email: string, password: string) => {
+  const signupUser = async (fullName: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // signup() already returns response.data, so response is the data object
+      const response = await signup(fullName, email, password);
       
-      setUser({
-        id: '1',
-        email,
-        fullName,
-        authProvider: 'email',
-      });
-    } catch {
-      throw new Error('Signup failed');
+      // Handle different response structures
+      const userData = (response as any).data || response;
+      setUser(userData as User);
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      const errorMessage = error?.message || 'Signup failed';
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginUserWithGoogle = async () => {
     if (!isReady) {
       console.log('Google auth not ready yet');
       return;
@@ -121,56 +125,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const googleUser: GoogleUserInfo | null = await signInWithGoogle();
       
-      if (googleUser) {
-        setUser({
-          id: googleUser.id,
-          email: googleUser.email,
-          fullName: googleUser.name,
-          avatar: googleUser.picture,
-          authProvider: 'google',
-        });
-      } else {
+      if (!googleUser) {
         throw new Error('Google login failed or was cancelled');
       }
-    } catch (error) {
+      const token = await getToken(googleUser.email);
+
+      const user = {
+        id: googleUser.id,
+        email: googleUser.email,
+        fullName: googleUser.name,
+        avatar: googleUser.picture,
+        authProvider: 'google',
+        token: token,
+      };
+
+      setUser(user as User);
+      
+      return user as User;
+    } catch (error: any) {
       console.error('Google login error:', error);
-      throw new Error('Google login failed');
+      const errorMessage = error?.message || 'Google login failed';
+      throw new Error(errorMessage);
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
-  const logout = async () => {
+  const logoutUser = async () => {
     setIsLoggingOut(true);
     try {
-      // Simulate logout process (e.g., API call to invalidate token)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await logout(user?.token || '');
       setUser(null);
       await AsyncStorage.removeItem(STORAGE_KEY);
     } catch (error) {
       console.warn('Logout error:', error);
-      // Still clear user even if storage removal fails
-      setUser(null);
+      throw new Error('Logout failed');
     } finally {
       setIsLoggingOut(false);
     }
-  };
-
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    login,
-    signup,
-    loginWithGoogle,
-    logout,
-    isLoading,
-    isGoogleLoading,
-    isLoggingOut,
-    isHydrating,
-  };
-
+  };  
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loginUser, signupUser, loginUserWithGoogle, logoutUser, isLoading, isGoogleLoading, isLoggingOut, isHydrating }}>
       {children}
     </AuthContext.Provider>
   );

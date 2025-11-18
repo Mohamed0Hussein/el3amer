@@ -4,12 +4,14 @@ import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/hooks/useTheme';
 import { useLocalization } from '@/context/LocalizationContext';
+import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -21,27 +23,59 @@ import {
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { loginWithGoogle, isGoogleLoading } = useAuth();
+  const { loginUser, loginUserWithGoogle, isLoading, isGoogleLoading } = useAuth();
   const { t } = useLocalization();
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleLogin = async () => {
+    // Validate inputs
     if (!email || !password) {
-      alert(t('fillAllFields'));
+      Alert.alert(t('error'), t('fillAllFields'));
       return;
     }
 
-    setIsLoading(true);
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to main app
-      navigation.navigate(ROUTES.HOME as never);
-    }, 1500);
+    // Validate email format
+    if (!validateEmail(email)) {
+      Alert.alert(t('error'), t('invalidEmail'));
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      Alert.alert(t('error'), t('passwordMin'));
+      return;
+    }
+
+    try {
+      await loginUser(email, password);
+      // Navigation will happen automatically via RootNavigator when user is set
+    } catch (error: any) {
+      console.error('Login error:', error);
+      Alert.alert(
+        t('loginFailed'),
+        error?.message || t('loginError')
+      );
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await loginUserWithGoogle();
+      // Navigation will happen automatically via RootNavigator when user is set
+    } catch (error: any) {
+      Alert.alert(
+        t('loginFailed'),
+        error?.message || t('loginError')
+      );
+    }
   };
 
   const handleSignUp = () => {
@@ -53,10 +87,18 @@ export default function LoginScreen() {
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header Section */}
           <View style={styles.header}>
+            <View style={[styles.logoContainer, { backgroundColor: theme.primary[100] }]}>
+              <Ionicons name="storefront" size={48} color={theme.primary[500]} />
+            </View>
             <ThemedText variant="primary" size="3xl" weight="bold" style={styles.title}>
               {t('welcomeBack')}
             </ThemedText>
@@ -65,9 +107,10 @@ export default function LoginScreen() {
             </ThemedText>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            <ThemedTextInput
+          {/* Form Section */}
+          <View style={styles.formContainer}>
+            <View style={styles.form}>
+              <ThemedTextInput
                 label={t('emailLabel')}
                 icon='mail-outline'
                 placeholder={t('emailPlaceholder')}
@@ -75,11 +118,12 @@ export default function LoginScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 style={styles.input}
                 placeholderTextColor={theme.gray[400]}
-            />
+              />
 
-            <ThemedTextInput
+              <ThemedTextInput
                 label={t('passwordLabel')}
                 icon='lock-closed-outline'
                 placeholder={t('passwordPlaceholder')}
@@ -88,63 +132,88 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
                 style={styles.input}
                 placeholderTextColor={theme.gray[400]}
-                rightIcon={<TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={theme.gray[400]} />
-                </TouchableOpacity>}
-            />
-            <TouchableOpacity style={styles.forgotPassword}>
-              <ThemedText variant="success" size="sm" weight="medium">
-                {t('forgotPassword')}
-              </ThemedText>
-            </TouchableOpacity>
+                rightIcon={
+                  <TouchableOpacity 
+                    onPress={() => setShowPassword(!showPassword)} 
+                    style={styles.eyeIcon}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons 
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
+                      size={22} 
+                      color={theme.gray[500]} 
+                    />
+                  </TouchableOpacity>
+                }
+              />
 
-            <ThemedButton
-              variant="primary"
-              size="lg"
-              onPress={handleLogin}
-              loading={isLoading}
-              style={styles.loginButton}
-            >
-              {t('signIn')}
-            </ThemedButton>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
-              <ThemedText variant="tertiary" size="sm" style={styles.dividerText}>
-                {t('orContinueWith')}
-              </ThemedText>
-              <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
-            </View>
-
-            {/* Social Login */}
-            <View style={styles.socialButtons}>
               <TouchableOpacity 
-                style={[styles.socialButton, { backgroundColor: theme.background.card }]} 
-                onPress={loginWithGoogle}
-                disabled={isGoogleLoading}
+                style={styles.forgotPassword}
+                onPress={() => {
+                  // TODO: Implement forgot password
+                  Alert.alert(t('forgotPassword'), 'Feature coming soon!');
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="logo-google" size={20} color={theme.gray[600]} />
-                <ThemedText variant="secondary" size="sm" weight="medium" style={styles.socialText}>
-                  {t('google')}
+                <ThemedText variant="success" size="sm" weight="medium">
+                  {t('forgotPassword')}
                 </ThemedText>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.socialButton, { backgroundColor: theme.background.card }]}>
-                <Ionicons name="logo-apple" size={20} color={theme.gray[600]} />
-                <ThemedText variant="secondary" size="sm" weight="medium" style={styles.socialText}>
-                  {t('apple')}
+              <ThemedButton
+                variant="primary"
+                size="lg"
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={isLoading}
+                style={styles.loginButton}
+              >
+                {t('signIn')}
+              </ThemedButton>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
+                <ThemedText variant="tertiary" size="sm" style={styles.dividerText}>
+                  {t('orContinueWith')}
                 </ThemedText>
+                <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
+              </View>
+
+              {/* Google Login Button */}
+              <TouchableOpacity 
+                style={[
+                  styles.googleButton, 
+                  { 
+                    backgroundColor: theme.background.card,
+                    borderColor: theme.gray[200],
+                  },
+                  isGoogleLoading && styles.googleButtonDisabled
+                ]} 
+                onPress={handleGoogleLogin}
+                disabled={isGoogleLoading || isLoading}
+                activeOpacity={0.7}
+              >
+                {isGoogleLoading ? (
+                  <ActivityIndicator size="small" color={theme.primary[500]} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={22} color={theme.gray[700]} />
+                    <ThemedText variant="secondary" size="base" weight="semibold" style={styles.googleButtonText}>
+                      {t('signInWithGoogle')}
+                    </ThemedText>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Sign Up Link */}
+          {/* Footer Section */}
           <View style={styles.footer}>
             <ThemedText variant="tertiary" size="base">
               {t('dontHaveAccount')}{' '}
             </ThemedText>
-            <TouchableOpacity onPress={handleSignUp}>
+            <TouchableOpacity onPress={handleSignUp} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <ThemedText variant="success" size="base" weight="semibold">
                 {t('signUp')}
               </ThemedText>
@@ -165,12 +234,21 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 32,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   title: {
     marginBottom: 8,
@@ -178,45 +256,45 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: 'center',
+    marginTop: 4,
+  },
+  formContainer: {
+    width: '100%',
+    marginBottom: 24,
   },
   form: {
     width: '100%',
   },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
   input: {
-    flex: 1,
-    height: '100%',
     fontSize: 16,
   },
   eyeIcon: {
-    padding: 4,
+    padding: 8,
+    marginRight: 4,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
+    marginTop: -8,
+    marginBottom: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   loginButton: {
-    marginBottom: 24,
+    marginBottom: 12,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
-  divider: {
+  dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
@@ -224,26 +302,36 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 16,
+    fontSize: 13,
   },
-  socialButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  socialButton: {
-    flex: 1,
+  googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderRadius: 12,
-    gap: 8,
+    borderWidth: 1.5,
+    gap: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
-  socialText: {
-    // Uses themed text props
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleButtonText: {
+    marginLeft: 4,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 32,
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingTop: 16,
   },
 });

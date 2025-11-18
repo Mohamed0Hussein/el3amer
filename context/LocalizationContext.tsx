@@ -1,7 +1,7 @@
 import { SupportedLanguage, isRtlLanguage, translations } from '@/localization/translations';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { I18nManager } from 'react-native';
+import { DevSettings, I18nManager } from 'react-native';
 
 type LocalizationContextType = {
   language: SupportedLanguage;
@@ -44,15 +44,33 @@ export const LocalizationProvider = ({ children }: { children: React.ReactNode }
     if (I18nManager.isRTL !== shouldBeRtl) {
       I18nManager.allowRTL(shouldBeRtl);
       I18nManager.forceRTL(shouldBeRtl);
-      // Note: RTL changes will apply without reload in React Native
-      // The UI will update automatically through re-renders
+      
+      // Try to reload the app to apply RTL changes immediately
+      // This is necessary because I18nManager changes require a native reload
+      if (DevSettings?.reload) {
+        // For development: Use React Native's DevSettings to reload
+        DevSettings.reload();
+        return; // Reload was triggered, function will exit
+      }
+      
+      // Note: For production builds with expo-updates, you would need to:
+      // 1. Install expo-updates: npx expo install expo-updates
+      // 2. Use Updates.reloadAsync() here
+      
+      // If no reload method is available, the state change + key prop remount 
+      // should handle most UI updates, but some native components may not update
+      // until the app is manually restarted
     }
   };
 
   const setLanguage = async (lang: SupportedLanguage) => {
+    // Apply RTL changes first - this may trigger a reload
+    await applyRtlIfNeeded(lang);
+    
+    // Update state and storage
+    // Note: If reload was triggered above, this code may not execute
     setLanguageState(lang);
     await AsyncStorage.setItem(STORAGE_KEY, lang);
-    await applyRtlIfNeeded(lang);
   };
 
   const t = useMemo(() => {

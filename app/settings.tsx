@@ -4,21 +4,19 @@ import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { SupportedLanguage } from '@/localization/translations';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const { theme } = useTheme();
-  const { logout, user, isLoggingOut } = useAuth();
+  const { logoutUser, user, isLoggingOut } = useAuth();
   const { language, setLanguage, t } = useLocalization();
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
-
-  useEffect(() => {
-    // You can hydrate this from AsyncStorage if desired
-  }, []);
+  const navigation = useNavigation();
 
   const languages: { code: SupportedLanguage; name: string; nativeName: string }[] = [
     { code: 'en', name: 'English', nativeName: 'English' },
@@ -48,7 +46,8 @@ export default function SettingsScreen() {
           <TouchableOpacity 
             style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 }]} 
             onPress={async () => {
-              await logout();
+              await logoutUser();
+              navigation.navigate(ROUTES.LOGIN as never);
             }}
             disabled={isLoggingOut}
           >
