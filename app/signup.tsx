@@ -4,12 +4,13 @@ import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/hooks/useTheme';
 import { useLocalization } from '@/context/LocalizationContext';
+import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,14 +26,12 @@ export default function SignUpScreen() {
     password: '',
     confirmPassword: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const { loginWithGoogle } = useAuth()
+  const { signupUser, isLoading: isAuthLoading } = useAuth()
   const { t } = useLocalization();
 
   const handleInputChange = (field: string, value: string) => {
@@ -46,39 +45,30 @@ export default function SignUpScreen() {
     const { fullName, email, password, confirmPassword } = formData;
     
     if (!fullName || !email || !password || !confirmPassword) {
-      alert(t('fillAllFields'));
+      Alert.alert(t('error'), t('fillAllFields'));
       return;
     }
 
     if (password !== confirmPassword) {
-      alert(t('passwordsNoMatch'));
+      Alert.alert(t('error'), t('passwordsNoMatch'));
       return;
     }
 
     if (password.length < 6) {
-      alert(t('passwordMin'));
+      Alert.alert(t('error'), t('passwordMin'));
       return;
     }
 
-    setIsLoading(true);
-    // Simulate signup process
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to main app
-      navigation.navigate(ROUTES.HOME as never);
-    }, 1500);
-  };
-
-  const handleGoogleSignUp = async () => {
-    try{
-      setIsGoogleLoading(true);
-      const user = await loginWithGoogle()
-      console.log(user)
-      setIsGoogleLoading(false)
-      
-    }
-    catch(e : any){
-      console.error(e)
+    try {
+      await signupUser(fullName, email, password);
+      // Navigation will happen automatically via RootNavigator when user is set
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      const errorMessage = error?.message || error?.response?.data?.message || 'Signup failed';
+      Alert.alert(
+        t('error'),
+        errorMessage
+      );
     }
   };
 
@@ -176,7 +166,7 @@ export default function SignUpScreen() {
               variant="primary"
               size="lg"
               onPress={handleSignUp}
-              loading={isLoading}
+              loading={isAuthLoading}
               style={styles.signUpButton}
             >
               {t('createAccountCta')}
@@ -190,26 +180,6 @@ export default function SignUpScreen() {
               </ThemedText>
               <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
             </View>
-
-            {/* Google Sign Up Button */}
-            <TouchableOpacity
-              style={[styles.googleButton, { backgroundColor: theme.background.card }]}
-              onPress={handleGoogleSignUp}
-              disabled={isGoogleLoading}
-            >
-              {isGoogleLoading ? (
-                <ThemedText variant="secondary" size="base" weight="medium">
-                  {t('signingUp')}
-                </ThemedText>
-              ) : (
-                <>
-                  <Ionicons name="logo-google" size={20} color={theme.primary[500]} />
-                  <ThemedText variant="secondary" size="base" weight="medium" style={styles.googleButtonText}>
-                    {t('signUpWithGoogle')}
-                  </ThemedText>
-                </>
-              )}
-            </TouchableOpacity>
 
             {/* Terms */}
             <ThemedText variant="tertiary" size="sm" style={styles.terms}>

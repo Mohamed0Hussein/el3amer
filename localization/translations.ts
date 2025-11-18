@@ -52,7 +52,7 @@ export const translations = {
     signIn: 'Sign In',
     orContinueWith: 'Or continue with',
     google: 'Google',
-    apple: 'Apple',
+    signInWithGoogle: 'Sign in with Google',
     dontHaveAccount: "Don't have an account?",
     signUp: 'Sign Up',
     // Signup
@@ -72,6 +72,10 @@ export const translations = {
     fillAllFields: 'Please fill in all fields',
     passwordsNoMatch: 'Passwords do not match',
     passwordMin: 'Password must be at least 6 characters',
+    error: 'Error',
+    invalidEmail: 'Please enter a valid email address',
+    loginFailed: 'Login Failed',
+    loginError: 'An error occurred during login. Please try again.',
     // Product units
     unit_lb: 'lb',
     unit_gal: 'gal',
@@ -150,7 +154,7 @@ export const translations = {
     signIn: 'تسجيل الدخول',
     orContinueWith: 'أو تابع باستخدام',
     google: 'جوجل',
-    apple: 'آبل',
+    signInWithGoogle: 'تسجيل الدخول باستخدام جوجل',
     dontHaveAccount: 'ليس لديك حساب؟',
     signUp: 'إنشاء حساب',
     // Signup
@@ -170,6 +174,10 @@ export const translations = {
     fillAllFields: 'يرجى تعبئة جميع الحقول',
     passwordsNoMatch: 'كلمتا المرور غير متطابقتين',
     passwordMin: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
+    error: 'خطأ',
+    invalidEmail: 'يرجى إدخال عنوان بريد إلكتروني صحيح',
+    loginFailed: 'فشل تسجيل الدخول',
+    loginError: 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
     // Product units
     unit_lb: 'رطل',
     unit_gal: 'غالون',
