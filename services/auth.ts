@@ -1,38 +1,45 @@
 import axios from './axios';
 
+// LOGIN
 export const login = async (email: string, password: string) => {
-    const response = await axios.post('/auth/login', { email, password });
-    return response.data;
+    const res = await axios.post('/auth/login', { email, password });
+    return res.data;
 };
 
-export const loginWithGoogle = async (email: string,fullName: string) => {
-    const response = await axios.post('/auth/google-login', { email,fullName });
-    return response.data;
+// GOOGLE LOGIN
+export const loginWithGoogle = async (email: string, fullName: string) => {
+    const res = await axios.post('/auth/google-login', { email, fullName });
+    return res.data;
 };
+
+// REGISTER
 export const signup = async (fullName: string, email: string, password: string) => {
-    const response = await axios.post('/auth/register', { fullName, email, password });
-    return response.data;
+    const res = await axios.post('/auth/register', {
+        fullName,
+        email,
+        password
+    });
+    return res.data;
 };
 
+// LOGOUT
 export const logout = async (token: string) => {
-    const response = await axios.post('/auth/logout', { token }, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
-    return response.data;
-};  
-
-export const getToken = async (email: string) => {
-    const response = await axios.post('/auth/generate-token', { email });
-    return response.data;
+    const res = await axios.post('/auth/logout', { token });
+    return res.data;
 };
 
+// TEMP: GENERATE TOKEN
+export const getToken = async (email: string) => {
+    const res = await axios.post('/auth/generate-token', { email });
+    return res.data;
+};
+
+// GET USER USING TOKEN
 export const getUser = async (token: string) => {
-    const response = await axios.get('/auth/user', {
+    const res = await axios.get('/auth/user', {
         headers: {
             Authorization: `Bearer ${token}`
         }
     });
-    return response.data;
+    return res.data;
 };

@@ -11,12 +11,12 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
  
 import { ActivityIndicator } from "react-native";
-import CartScreen from "./cart";
+import CartScreen from "./CartScreen";
+import LoginScreen from "./LoginScreen";
+import ProfileScreen from "./ProfileScreen";
+import SettingsScreen from "./SettingsScreen";
+import SignUpScreen from "./SignUpScreen";
 import HomeScreen from "./index";
-import LoginScreen from "./login";
-import ProfileScreen from "./profile";
-import SettingsScreen from "./settings";
-import SignUpScreen from "./signup";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 

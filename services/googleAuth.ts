@@ -54,7 +54,6 @@ export const useGoogleAuth = () => {
       const result = await promptAsync();
 
       if (result.type !== 'success') {
-        console.log('Auth cancelled or failed:', result.type);
         return null;
       }
 

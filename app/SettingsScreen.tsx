@@ -1,6 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
@@ -47,7 +46,7 @@ export default function SettingsScreen() {
             style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 }]} 
             onPress={async () => {
               await logoutUser();
-              navigation.navigate(ROUTES.LOGIN as never);
+              // navigation.navigate(ROUTES.LOGIN as never);
             }}
             disabled={isLoggingOut}
           >
