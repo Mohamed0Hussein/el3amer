@@ -6,6 +6,7 @@ import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
+import { loginWithGoogle } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -68,13 +69,15 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      await loginUserWithGoogle();
-      // Navigation will happen automatically via RootNavigator when user is set
+      const user = await loginUserWithGoogle();
+      if (user) {
+        await loginWithGoogle(user.email,user.fullName);
+
+      }
+      else{
+      }
     } catch (error: any) {
-      Alert.alert(
-        t('loginFailed'),
-        error?.message || t('loginError')
-      );
+      console.error('Google login error:', error);
     }
   };
 

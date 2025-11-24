@@ -18,7 +18,6 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { t } = useLocalization();
 
-  console.log(user);
   return (
     <ThemedView variant="primary" style={styles.container}>
       <ThemedView
@@ -38,7 +37,7 @@ export default function ProfileScreen() {
               variant="default"
               style={[styles.profileAvatar, { backgroundColor: theme.primary[100] }]}
             >
-              <Image source={{ uri: user?.avatar }} style={styles.avatarImage} />
+              <Image source={{ uri: user?.profilePicture }} style={styles.avatarImage} />
             </ThemedView>
 
             <ThemedView variant="default" style={styles.profileInfo}>
