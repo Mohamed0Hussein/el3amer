@@ -9,9 +9,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
- 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ActivityIndicator } from "react-native";
 import CartScreen from "./CartScreen";
+import EditProfileScreen from "./EditProfileScreen";
 import LoginScreen from "./LoginScreen";
 import ProfileScreen from "./ProfileScreen";
 import SettingsScreen from "./SettingsScreen";
@@ -116,6 +117,7 @@ function RootNavigator() {
         <>
           <Stack.Screen name={ROUTES.APP} component={MainAppTabs} />
           <Stack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />
+          <Stack.Screen name={ROUTES.EDIT_PROFILE} component={EditProfileScreen} />
         </>
       ) : (
         <Stack.Screen name={ROUTES.AUTH} component={AuthStack} />
@@ -197,12 +199,16 @@ function RtlWrapper({ children }: { children: React.ReactNode }) {
 }
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient()
+
   return (
     <LocalizationProvider>
       <AuthProvider>
         <FavoritesProvider>
           <CartContextProvider>
-            {children}
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
           </CartContextProvider>
         </FavoritesProvider>
       </AuthProvider>

@@ -24,4 +24,5 @@ export const ROUTES = {
   ...MAIN_TABS,
   ...ROOT_ROUTES,
   SETTINGS: 'settings',
+  EDIT_PROFILE: 'edit_profile',
 } as const;
