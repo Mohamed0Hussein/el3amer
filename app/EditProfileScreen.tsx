@@ -2,17 +2,19 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/context/AuthContext';
+import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { getUserInfo } from '@/services/user';
+import { getUserInfo, updateUser } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function EditProfileScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { t } = useLocalization();
   const navigation = useNavigation();
   const {data, isLoading} = useQuery({queryFn: () => getUserInfo(user?.id as string), queryKey:[user?.id]})
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -22,8 +24,25 @@ export default function EditProfileScreen() {
   const [isUpdating, setIsUpdating] = useState(false)
 
   const handleSave = async () => {
+    if (!user?.id) return;
     
-    // await updateUser({ fullName, email });
+    setIsUpdating(true);
+    try {
+      await updateUser(user.id.toString(), {
+        fullName,
+        email,
+        phone,
+        address
+      });
+      Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
+        { text: t('ok'), onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      console.error(error);
+      Alert.alert(t('updateFailed'), t('updateFailedMessage'));
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (

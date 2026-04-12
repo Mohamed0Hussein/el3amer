@@ -6,19 +6,19 @@ import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { loginWithGoogle } from '@/services/auth';
+import { forgotPassword, loginWithGoogle } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function LoginScreen() {
@@ -78,6 +78,24 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.error('Google login error:', error);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert(t('error'), t('invalidEmail'));
+      return;
+    }
+    if (!validateEmail(email)) {
+      Alert.alert(t('error'), t('invalidEmail'));
+      return;
+    }
+
+    try {
+      await forgotPassword(email);
+      Alert.alert(t('success'), 'Password reset email sent!');
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message || 'Failed to send reset email');
     }
   };
 
@@ -152,10 +170,7 @@ export default function LoginScreen() {
 
               <TouchableOpacity 
                 style={styles.forgotPassword}
-                onPress={() => {
-                  // TODO: Implement forgot password
-                  Alert.alert(t('forgotPassword'), 'Feature coming soon!');
-                }}
+                onPress={handleForgotPassword}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <ThemedText variant="success" size="sm" weight="medium">

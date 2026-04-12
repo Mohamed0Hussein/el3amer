@@ -5,12 +5,12 @@ import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { CartItem } from '@/types/CardItem';
+import { createOrder } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react';
 
-import { FlatList, StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 
 const Cart = () => {
   const navigation = useNavigation();
@@ -18,11 +18,47 @@ const Cart = () => {
     cart,
     updateCartQuantity,
     removeFromCart,
+    clearCart,
+    cartTotal,
+    cartItemCount,
   } = useCartContext();
-  const cartTotal = cart.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
-  const cartItemCount = cart.reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { theme } = useTheme();
   const { t } = useLocalization();
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    
+    setIsCheckingOut(true);
+    try {
+      await createOrder({
+        items: cart,
+        total: cartTotal,
+      });
+      
+      Alert.alert(
+        t('checkoutSuccessTitle'),
+        t('checkoutSuccessMessage'),
+        [
+          {
+            text: t('ok'),
+            onPress: () => {
+              clearCart();
+              navigation.navigate(ROUTES.HOME as never);
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Checkout error:', error);
+      Alert.alert(
+        t('orderFailed'),
+        t('orderFailedMessage')
+      );
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   return (
     <ThemedView variant="primary" style={styles.container}>
@@ -114,11 +150,21 @@ const Cart = () => {
               </ThemedText>
             </ThemedView>
             <TouchableOpacity 
-              style={[styles.checkoutButton, { backgroundColor: theme.primary[500] }]}
+              style={[
+                styles.checkoutButton, 
+                { backgroundColor: theme.primary[500] },
+                isCheckingOut && { opacity: 0.7 }
+              ]}
+              onPress={handleCheckout}
+              disabled={isCheckingOut}
             >
-              <ThemedText variant="inverse" size="lg" weight="bold" style={styles.checkoutButtonText}>
-                {t('proceedToCheckout')}
-              </ThemedText>
+              {isCheckingOut ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <ThemedText variant="inverse" size="lg" weight="bold" style={styles.checkoutButtonText}>
+                  {t('proceedToCheckout')}
+                </ThemedText>
+              )}
             </TouchableOpacity>
           </ThemedView>
         </>

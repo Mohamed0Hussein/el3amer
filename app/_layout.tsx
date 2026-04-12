@@ -1,3 +1,4 @@
+import { NetworkBanner } from "@/components/NetworkBanner";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ROUTES } from "@/constants/routes";
@@ -11,13 +12,19 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ActivityIndicator } from "react-native";
+import AddressScreen from "./AddressScreen";
 import CartScreen from "./CartScreen";
+import ChangePasswordScreen from "./ChangePasswordScreen";
 import EditProfileScreen from "./EditProfileScreen";
+import FavoritesScreen from "./FavoritesScreen";
+import HomeScreen from "./index";
 import LoginScreen from "./LoginScreen";
+import OrderDetailsScreen from "./OrderDetailsScreen";
+import OrdersScreen from "./OrdersScreen";
+import ProductDetailsScreen from "./ProductDetailsScreen";
 import ProfileScreen from "./ProfileScreen";
 import SettingsScreen from "./SettingsScreen";
 import SignUpScreen from "./SignUpScreen";
-import HomeScreen from "./index";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -108,9 +115,11 @@ function RootNavigator() {
 
   // Use key prop to force remount when auth state changes
   return (
-    <Stack.Navigator 
-      key={isAuthenticated ? 'authenticated' : 'unauthenticated'}
-      screenOptions={{ headerShown: false }}
+    <>
+      <NetworkBanner />
+      <Stack.Navigator 
+        key={isAuthenticated ? 'authenticated' : 'unauthenticated'}
+        screenOptions={{ headerShown: false }}
       initialRouteName={isAuthenticated ? ROUTES.APP : ROUTES.AUTH}
     >
       {isAuthenticated ? (
@@ -118,11 +127,18 @@ function RootNavigator() {
           <Stack.Screen name={ROUTES.APP} component={MainAppTabs} />
           <Stack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />
           <Stack.Screen name={ROUTES.EDIT_PROFILE} component={EditProfileScreen} />
+          <Stack.Screen name={ROUTES.FAVORITES} component={FavoritesScreen} />
+          <Stack.Screen name={ROUTES.ORDERS} component={OrdersScreen} />
+          <Stack.Screen name={ROUTES.PRODUCT_DETAILS} component={ProductDetailsScreen} />
+          <Stack.Screen name={ROUTES.ORDER_DETAILS} component={OrderDetailsScreen} />
+          <Stack.Screen name={ROUTES.ADDRESSES} component={AddressScreen} />
+          <Stack.Screen name={ROUTES.CHANGE_PASSWORD} component={ChangePasswordScreen} />
         </>
       ) : (
         <Stack.Screen name={ROUTES.AUTH} component={AuthStack} />
       )}
     </Stack.Navigator>
+    </>
   );
 }
 
@@ -136,8 +152,8 @@ const CartTabIcon = ({
   size: number;
   focused: boolean;
 }) => {
-  const { cart } = useCartContext(); 
-  const count = cart?.map((item: any) => item.quantity).reduce((a: number, b: number) => a + b, 0) || 0;
+  const { cartItemCount } = useCartContext(); 
+  const count = cartItemCount;
 
   return (
     <ThemedView style={{ position: 'relative' }}>

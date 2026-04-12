@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 /**
@@ -17,7 +18,7 @@ import axios from 'axios';
  * 
  * Example: 'http://192.168.1.100:3000'
  */
-const API_BASE_URL =  'http://192.168.1.12:3000';
+const API_BASE_URL =  'https://primacy-backend.vercel.app';
 
 // Create axios instance with default configuration
 const axiosInstance = axios.create({
@@ -30,12 +31,18 @@ const axiosInstance = axios.create({
 
 // Request interceptor - add auth token if available
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // You can add token from AsyncStorage here if needed
-    // const token = await AsyncStorage.getItem('@auth:token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+  async (config) => {
+    try {
+      const rawUser = await AsyncStorage.getItem('@auth:user');
+      if (rawUser) {
+        const user = JSON.parse(rawUser);
+        if (user.token) {
+          config.headers.Authorization = `Bearer ${user.token}`;
+        }
+      }
+    } catch (e) {
+      console.error('Error reading auth token from storage', e);
+    }
     return config;
   },
   (error) => {

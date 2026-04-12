@@ -43,3 +43,42 @@ export const getUser = async (token: string) => {
     });
     return res.data;
 };
+
+// FORGOT PASSWORD - Request password reset email
+export const forgotPassword = async (email: string) => {
+    const res = await axios.post('/auth/forgot-password', { email });
+    return res.data;
+};
+
+// RESET PASSWORD - Reset password with token from email
+export const resetPassword = async (token: string, newPassword: string) => {
+    const res = await axios.post('/auth/reset-password', { token, newPassword });
+    return res.data;
+};
+
+// CHANGE PASSWORD - Change password for authenticated user
+export const changePassword = async (currentPassword: string, newPassword: string, token: string) => {
+    const res = await axios.post('/auth/change-password', 
+        { currentPassword, newPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+};
+
+export const checkPassword = async (password: string, token: string) => {
+    const res = await axios.post('/auth/check-password', { password,token }, { headers: { Authorization: `Bearer ${token}` } });
+    return res.data;
+}
+
+// VERIFY EMAIL
+export const verifyEmail = async (token: string) => {
+    const res = await axios.post('/auth/verify-email', { token });
+    return res.data;
+};
+
+// RESEND VERIFICATION EMAIL
+export const resendVerification = async (email: string) => {
+    const res = await axios.post('/auth/resend-verification', { email });
+    return res.data;
+};
+

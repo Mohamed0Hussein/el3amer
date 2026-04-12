@@ -25,4 +25,10 @@ export const ROUTES = {
   ...ROOT_ROUTES,
   SETTINGS: 'settings',
   EDIT_PROFILE: 'edit_profile',
+  FAVORITES: 'favorites',
+  ORDERS: 'orders',
+  PRODUCT_DETAILS: 'product_details',
+  ORDER_DETAILS: 'order_details',
+  ADDRESSES: 'addresses',
+  CHANGE_PASSWORD: 'change_password',
 } as const;
