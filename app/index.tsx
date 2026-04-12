@@ -1,34 +1,39 @@
-import { ThemedButton } from '@/components/themed-button';
+import { EmptyState } from '@/components/EmptyState';
+import { ProductCard } from '@/components/ProductCard';
+import { ProductListSkeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useCartContext } from '@/context/CartContext';
-import { useFavorites } from '@/context/FavoritesContext';
-import { useTheme } from '@/hooks/useTheme';
 import { useLocalization } from '@/context/LocalizationContext';
+import { useTheme } from '@/hooks/useTheme';
+import { getProducts } from '@/services/products';
 import { Category } from '@/types/Category';
-import { Product } from '@/types/Product';
+import { LocalizedProduct } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import {
-  Dimensions,
-  FlatList,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+    FlatList,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
-
-export default function App() {
+export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'name' | 'price_low' | 'price_high'>('name');
 
-  const { favorites, toggleFavorite } = useFavorites();
-  const { addToCart, cart } = useCartContext();
   const { theme } = useTheme();
   const { t } = useLocalization();
+
+  const { data: products = [], isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ['products'],
+    queryFn: getProducts,
+  });
 
   const categories: Category[] = [
     { id: 'all', name: t('cat_all'), icon: 'apps-outline' },
@@ -41,161 +46,168 @@ export default function App() {
     { id: 'beverages', name: t('cat_beverages'), icon: 'beer-outline' },
   ];
 
-  const products: Array<Product & { nameKey: keyof typeof import('@/localization/translations').translations['en']; unitKey: keyof typeof import('@/localization/translations').translations['en']; }> = [
-    { id: 1, name: 'Fresh Apples', nameKey: 'prod_freshApples', category: 'fruits', price: 3.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🍎', stock: 50 },
-    { id: 2, name: 'Organic Bananas', nameKey: 'prod_organicBananas', category: 'fruits', price: 2.49, unit: 'lb', unitKey: 'unit_lb', emoji: '🍌', stock: 45 },
-    { id: 3, name: 'Fresh Carrots', nameKey: 'prod_freshCarrots', category: 'vegetables', price: 1.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🥕', stock: 30 },
-    { id: 4, name: 'Broccoli', nameKey: 'prod_broccoli', category: 'vegetables', price: 2.79, unit: 'lb', unitKey: 'unit_lb', emoji: '🥦', stock: 25 },
-    { id: 5, name: 'Whole Milk', nameKey: 'prod_wholeMilk', category: 'dairy', price: 4.29, unit: 'gal', unitKey: 'unit_gal', emoji: '🥛', stock: 20 },
-    { id: 6, name: 'Cheddar Cheese', nameKey: 'prod_cheddarCheese', category: 'dairy', price: 5.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🧀', stock: 15 },
-    { id: 7, name: 'Chicken Breast', nameKey: 'prod_chickenBreast', category: 'meat', price: 7.99, unit: 'lb', unitKey: 'unit_lb', emoji: '🍗', stock: 18 },
-    { id: 8, name: 'Ground Beef', nameKey: 'prod_groundBeef', category: 'meat', price: 6.49, unit: 'lb', unitKey: 'unit_lb', emoji: '🥩', stock: 22 },
-    { id: 9, name: 'White Bread', nameKey: 'prod_whiteBread', category: 'bakery', price: 2.99, unit: 'loaf', unitKey: 'unit_loaf', emoji: '🍞', stock: 35 },
-    { id: 10, name: 'Croissants', nameKey: 'prod_croissants', category: 'bakery', price: 4.49, unit: 'pack', unitKey: 'unit_pack', emoji: '🥐', stock: 12 },
-    { id: 11, name: 'Chocolate Cookies', nameKey: 'prod_chocolateCookies', category: 'snacks', price: 3.49, unit: 'pack', unitKey: 'unit_pack', emoji: '🍪', stock: 40 },
-    { id: 12, name: 'Potato Chips', nameKey: 'prod_potatoChips', category: 'snacks', price: 2.99, unit: 'pack', unitKey: 'unit_pack', emoji: '🥔', stock: 50 },
-    { id: 13, name: 'Orange Juice', nameKey: 'prod_orangeJuice', category: 'beverages', price: 4.99, unit: 'bottle', unitKey: 'unit_bottle', emoji: '🧃', stock: 28 },
-    { id: 14, name: 'Cola', nameKey: 'prod_cola', category: 'beverages', price: 5.49, unit: '12-pack', unitKey: 'unit_12pack', emoji: '🥤', stock: 33 },
-    { id: 15, name: 'Fresh Oranges', nameKey: 'prod_freshOranges', category: 'fruits', price: 4.29, unit: 'lb', unitKey: 'unit_lb', emoji: '🍊', stock: 38 },
-    { id: 16, name: 'Strawberries', nameKey: 'prod_strawberries', category: 'fruits', price: 5.99, unit: 'pack', unitKey: 'unit_pack', emoji: '🍓', stock: 20 },
-    { id: 17, name: 'Tomatoes', nameKey: 'prod_tomatoes', category: 'vegetables', price: 3.49, unit: 'lb', unitKey: 'unit_lb', emoji: '🍅', stock: 42 },
-    { id: 18, name: 'Greek Yogurt', nameKey: 'prod_greekYogurt', category: 'dairy', price: 6.49, unit: 'pack', unitKey: 'unit_pack', emoji: '🥄', stock: 28 },
-  ];
-
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
+    let result = products.filter((product: LocalizedProduct) => {
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      const localizedName = t(product.nameKey).toLowerCase();
+      const localizedName = t(product.nameKey as any).toLowerCase();
       const matchesSearch = localizedName.includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery]);
 
+    // Sorting logic
+    return result.sort((a, b) => {
+      if (sortBy === 'name') {
+        const nameA = t(a.nameKey as any).toLowerCase();
+        const nameB = t(b.nameKey as any).toLowerCase();
+        return nameA.localeCompare(nameB);
+      }
+      if (sortBy === 'price_low') return a.price - b.price;
+      if (sortBy === 'price_high') return b.price - a.price;
+      return 0;
+    });
+  }, [products, selectedCategory, searchQuery, sortBy, t]);
 
-
-  const ProductCard = ({ product }: { product: Product }) => (
-    <ThemedView variant="card" style={styles.productCard}>
-      <ThemedView style={styles.productHeader}>
-        <ThemedText style={styles.productEmoji}>{product.emoji}</ThemedText>
-        <TouchableOpacity
-          onPress={() => toggleFavorite(product.id)}
-          style={styles.favoriteBtn}
-        >
-          <Ionicons
-            name={favorites.includes(product.id) ? 'heart' : 'heart-outline'}
-            size={22}
-            color={favorites.includes(product.id) ? theme.status.error : theme.gray[400]}
-          />
-        </TouchableOpacity>
-      </ThemedView>
-      <ThemedText variant="primary" size="sm" weight="semibold" style={styles.productName}>
-        {t(product.nameKey as any)}
-      </ThemedText>
-      <ThemedView style={styles.priceContainer}>
-        <ThemedText variant="success" size="lg" weight="bold">
-          ${product.price}
-        </ThemedText>
-        <ThemedText variant="tertiary" size="sm" style={styles.productUnit}>
-          /{t(product.unitKey as any)}
-        </ThemedText>
-      </ThemedView>
-      <ThemedButton
-        variant="primary"
-        size="sm"
-        onPress={() => addToCart(product)}
-        style={styles.addButton}
-      >
-        {t('addToCart')}
-      </ThemedButton>
-    </ThemedView>
-  );
-
-
+  const onRefresh = () => {
+    refetch();
+  };
 
   return (
-      <ThemedView variant="primary" style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
-        
-        <ThemedView variant="primary" style={styles.container}>
-          {/* Header */}
-          <ThemedView style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-            <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
-              {t('appTitle')}
-            </ThemedText>
-            <ThemedView style={[styles.searchContainer, { backgroundColor: theme.background.secondary }]}>
-              <Ionicons name="search-outline" size={20} color={theme.gray[400]} style={styles.searchIcon} />
-              <TextInput
-                style={[styles.searchInput, { color: theme.text.primary }]}
-                placeholder={t('searchPlaceholder')}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={theme.gray[400]}
-              />
-            </ThemedView>
-          </ThemedView>
-
-          {/* Categories */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoriesContainer}
-            contentContainerStyle={styles.categoriesContent}
-          >
-            {categories.map(cat => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.categoryButton,
-                  { backgroundColor: theme.gray[100] },
-                  selectedCategory === cat.id && { backgroundColor: theme.primary[500] },
-                ]}
-                onPress={() => setSelectedCategory(cat.id)}
-              >
-                <Ionicons
-                  name={cat.icon as any}
-                  size={20}
-                  color={selectedCategory === cat.id ? theme.text.inverse : theme.gray[700]}
-                />
-                <ThemedText
-                  variant={selectedCategory === cat.id ? 'inverse' : 'secondary'}
-                  size="sm"
-                  weight="semibold"
-                  style={styles.categoryText}
-                >
-                  {cat.name}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Products Grid */}
-          <FlatList
-            style={{ flex: 1 }}
-            data={filteredProducts}
-            renderItem={({ item }) => <ProductCard product={item} />}
-            keyExtractor={item => item.id.toString()}
-            numColumns={2}
-            columnWrapperStyle={styles.productRow}
-            contentContainerStyle={styles.productsContainer}
-            showsVerticalScrollIndicator={false}
+    <ThemedView variant="primary" style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
+      
+      {/* Header */}
+      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
+        <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
+          {t('appTitle')}
+        </ThemedText>
+        <ThemedView style={[styles.searchContainer, { backgroundColor: theme.background.secondary }]}>
+          <Ionicons name="search-outline" size={20} color={theme.gray[400]} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text.primary }]}
+            placeholder={t('searchPlaceholder')}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={theme.gray[400]}
           />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={theme.gray[400]} />
+            </TouchableOpacity>
+          )}
         </ThemedView>
-
-        {/* Bottom Navigation */}
       </ThemedView>
+
+      {/* Categories */}
+      <ThemedView style={styles.categoriesWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesContainer}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {categories.map(cat => (
+            <TouchableOpacity
+              key={cat.id}
+              style={[
+                styles.categoryButton,
+                { backgroundColor: theme.gray[100] },
+                selectedCategory === cat.id && { backgroundColor: theme.primary[500] },
+              ]}
+              onPress={() => setSelectedCategory(cat.id)}
+            >
+              <Ionicons
+                name={cat.icon as any}
+                size={20}
+                color={selectedCategory === cat.id ? theme.text.inverse : theme.gray[700]}
+              />
+              <ThemedText
+                variant={selectedCategory === cat.id ? 'inverse' : 'secondary'}
+                size="sm"
+                weight="semibold"
+                style={styles.categoryText}
+              >
+                {cat.name}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </ThemedView>
+      
+      {/* Search Result Count & Sort UI */}
+      <ThemedView variant="secondary" style={styles.sortContainer}>
+        <ThemedText variant="tertiary" size="sm">
+          {filteredProducts.length} {t('cat_all')}
+        </ThemedText>
+        <View style={styles.sortButtons}>
+          <TouchableOpacity 
+            onPress={() => setSortBy('name')} 
+            style={[styles.sortBtn, sortBy === 'name' && { backgroundColor: theme.primary[500] + '20' }]}
+          >
+            <ThemedText variant={sortBy === 'name' ? 'success' : 'tertiary'} size="xs" weight="bold">A-Z</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => setSortBy('price_low')} 
+            style={[styles.sortBtn, sortBy === 'price_low' && { backgroundColor: theme.primary[500] + '20' }]}
+          >
+            <Ionicons name="trending-up-outline" size={14} color={sortBy === 'price_low' ? theme.primary[500] : theme.gray[400]} />
+            <ThemedText variant={sortBy === 'price_low' ? 'success' : 'tertiary'} size="xs" weight="bold">Low</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => setSortBy('price_high')} 
+            style={[styles.sortBtn, sortBy === 'price_high' && { backgroundColor: theme.primary[500] + '20' }]}
+          >
+            <Ionicons name="trending-down-outline" size={14} color={sortBy === 'price_high' ? theme.primary[500] : theme.gray[400]} />
+            <ThemedText variant={sortBy === 'price_high' ? 'success' : 'tertiary'} size="xs" weight="bold">High</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ThemedView>
+
+      {/* Products Grid */}
+      {isLoading && !isRefetching ? (
+        <ProductListSkeleton />
+      ) : (
+        <FlatList
+          data={filteredProducts}
+          renderItem={({ item }) => <ProductCard product={item} />}
+          keyExtractor={item => item.id.toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.productRow}
+          contentContainerStyle={styles.productsContainer}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={onRefresh}
+              colors={[theme.primary[500]]}
+              tintColor={theme.primary[500]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="search-outline"
+              title={t('noProducts')}
+              message={t('noProductsMessage')}
+              actionLabel={searchQuery || selectedCategory !== 'all' ? t('cat_all') : undefined}
+              onAction={() => {
+                setSearchQuery('');
+                setSelectedCategory('all');
+              }}
+            />
+          }
+        />
+      )}
+    </ThemedView>
   );
 }
 
-export const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   header: {
     padding: 20,
-    paddingTop: StatusBar.currentHeight || 0,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50,
+    paddingBottom: 20,
   },
   headerTitle: {
     marginBottom: 16,
@@ -205,24 +217,26 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 12,
+    height: 48,
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
+    height: '100%',
     fontSize: 16,
   },
+  categoriesWrapper: {
+    height: 70,
+  },
   categoriesContainer: {
-    maxHeight: 80,
-    paddingTop: 12,
-    paddingBottom: 8,
+    flex: 1,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
     alignItems: 'center',
+    gap: 12,
   },
   categoryButton: {
     flexDirection: 'row',
@@ -230,92 +244,36 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    marginRight: 12,
     height: 44,
   },
   categoryText: {
     marginLeft: 6,
   },
+  sortContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  sortButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
   productsContainer: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 100,
+    flexGrow: 1,
   },
   productRow: {
     justifyContent: 'space-between',
-  },
-  productCard: {
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 16,
-    width: (width - 48) / 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  productEmoji: {
-    fontSize: 48,
-  },
-  favoriteBtn: {
-    padding: 4,
-  },
-  productName: {
-    marginBottom: 4,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 12,
-  },
-  productUnit: {
-    marginLeft: 2,
-  },
-  addButton: {
-    // ThemedButton handles its own styling
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingVertical: 8,
-    paddingBottom: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  navButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  navText: {
-    marginTop: 4,
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -8,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    fontSize: 11,
   },
 });

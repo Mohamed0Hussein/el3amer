@@ -1,0 +1,144 @@
+import { ThemedButton } from '@/components/themed-button';
+import { ThemedTextInput } from '@/components/themed-textinput';
+import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/context/AuthContext';
+import { useLocalization } from '@/context/LocalizationContext';
+import { useTheme } from '@/hooks/useTheme';
+import { changePassword, checkPassword } from '@/services/auth';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { Alert, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+export default function ChangePasswordScreen() {
+  const [currentPass, setCurrentPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('')
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { theme } = useTheme();
+  const { t } = useLocalization();
+  const { user } = useAuth();
+  const navigation = useNavigation();
+
+  const { data: isValid } = useQuery({
+    queryKey: ['isPasswordCorrect', user?.id],
+    queryFn: () => checkPassword(currentPass, user?.token || ''),
+    enabled: !!currentPass,
+  });
+
+  const handleUpdate = async () => {
+    if (!currentPass || !newPass || !confirmPass) {
+      Alert.alert(t('error'), t('fillAllFields'));
+      return;
+    }
+
+    if (newPass !== confirmPass) {
+      Alert.alert(t('error'), t('passwordsNoMatch'));
+      return;
+    }
+
+    if (newPass.length < 6) {
+      Alert.alert(t('error'), t('passwordMin'));
+      return;
+    }
+    if (!isValid) {
+      Alert.alert(t('error'), t('passwordIncorrect'));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await changePassword(currentPass, newPass, user?.token || '');
+      Alert.alert(t('success'), t('passwordChangedMessage'), [
+        { text: t('ok'), onPress: () => navigation.goBack() }
+      ]);
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message || 'Failed to change password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <ThemedView variant="primary" style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
+      
+      {/* Header */}
+      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
+        </TouchableOpacity>
+        <ThemedText variant="inverse" size="2xl" weight="bold">
+          {t('changePassword')}
+        </ThemedText>
+      </ThemedView>
+
+      <View style={styles.content}>
+        <ThemedTextInput
+          label={t('currentPassword')}
+          placeholder="••••••••"
+          secureTextEntry
+          value={currentPass}
+          onChangeText={setCurrentPass}
+          icon="lock-closed-outline"
+        />
+        
+        <ThemedTextInput
+          label={t('newPassword')}
+          placeholder="••••••••"
+          secureTextEntry
+          value={newPass}
+          onChangeText={setNewPass}
+          icon="shield-checkmark-outline"
+        />
+
+        <ThemedTextInput
+          label={t('confirmNewPassword')}
+          placeholder="••••••••"
+          secureTextEntry
+          value={confirmPass}
+          onChangeText={setConfirmPass}
+          icon="shield-checkmark-outline"
+        />
+
+        <ThemedButton
+          variant="primary"
+          onPress={handleUpdate}
+          loading={isLoading}
+          style={styles.btn}
+          
+        >
+          {t('save')}
+        </ThemedButton>
+      </View>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    padding: 20,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
+    padding: 4,
+  },
+  content: {
+    padding: 24,
+  },
+  btn: {
+    marginTop: 24,
+  },
+});
+
+// Import ThemedText locally because it might not be exported from all themes
+import { ThemedText } from '@/components/themed-text';
+

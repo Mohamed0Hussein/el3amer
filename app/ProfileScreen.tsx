@@ -57,7 +57,10 @@ export default function ProfileScreen() {
 
           {/* Profile menu */}
           <ThemedView variant="default" style={styles.profileMenu}>
-            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}
+              onPress={() => navigation.navigate(ROUTES.ORDERS as never)}
+            >
               <Ionicons name="cube-outline" size={24} color={theme.gray[500]} />
               <ThemedText
                 variant="secondary"
@@ -70,7 +73,10 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}
+              onPress={() => navigation.navigate(ROUTES.FAVORITES as never)}
+            >
               <Ionicons name="heart-outline" size={24} color={theme.gray[500]} />
               <ThemedText
                 variant="secondary"
@@ -83,7 +89,10 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}>
+            <TouchableOpacity 
+              style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}
+              onPress={() => navigation.navigate(ROUTES.ADDRESSES as never)}
+            >
               <Ionicons name="location-outline" size={24} color={theme.gray[500]} />
               <ThemedText
                 variant="secondary"

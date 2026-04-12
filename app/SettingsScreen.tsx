@@ -44,6 +44,13 @@ export default function SettingsScreen() {
             <ThemedText>{t('editProfile')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity 
+            style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 },user?.authProvider === 'google' && { opacity: 0.5 }]} 
+            onPress={() => navigation.navigate(ROUTES.CHANGE_PASSWORD as never)}
+            disabled={user?.authProvider === 'google'}
+          > 
+            <ThemedText>{t('changePassword')}</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 }]} 
             onPress={async () => {
               await logoutUser();
