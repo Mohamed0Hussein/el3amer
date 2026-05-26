@@ -1,7 +1,8 @@
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { CartItem } from '@/types/CardItem';
 import { Product } from '@/types/Product';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface CartContextType {
   cart: CartItem[];
@@ -16,8 +17,6 @@ interface CartContextType {
 
 export const CartContext = createContext<CartContextType | null>(null);
 
-const CART_STORAGE_KEY = '@cart:items';
-
 export const CartContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -26,7 +25,7 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
   useEffect(() => {
     const loadCart = async () => {
       try {
-        const storedCart = await AsyncStorage.getItem(CART_STORAGE_KEY);
+        const storedCart = await AsyncStorage.getItem(STORAGE_KEYS.cartItems);
         if (storedCart) {
           setCart(JSON.parse(storedCart));
         }
@@ -44,7 +43,7 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
     if (isHydrated) {
       const saveCart = async () => {
         try {
-          await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+          await AsyncStorage.setItem(STORAGE_KEYS.cartItems, JSON.stringify(cart));
         } catch (error) {
           console.error('Failed to save cart to storage:', error);
         }
@@ -53,26 +52,29 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
     }
   }, [cart, isHydrated]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     setCart(prev => {
       const existing = prev.find(p => p.id === product.id);
       return existing
         ? prev.map(p => p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p)
         : [...prev, { ...product, quantity: 1 }];
     });
-  };
+  }, []);
 
-  const updateCartQuantity = (id: number, change: number) => {
+  const updateCartQuantity = useCallback((id: number, change: number) => {
     setCart(prev =>
       prev
         .map(p => p.id === id ? { ...p, quantity: p.quantity + change } : p)
-        .filter(p => p.quantity > 0)
+        .filter(p => p.quantity > 0),
     );
-  };
+  }, []);
 
-  const removeFromCart = (id: number) => setCart(prev => prev.filter(p => p.id !== id));
+  const removeFromCart = useCallback(
+    (id: number) => setCart(prev => prev.filter(p => p.id !== id)),
+    [],
+  );
 
-  const clearCart = () => setCart([]);
+  const clearCart = useCallback(() => setCart([]), []);
 
   const cartTotal = useMemo(() => 
     cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
@@ -84,9 +86,28 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
     [cart]
   );
 
-  const value = useMemo(() => ({
-    cart, addToCart, updateCartQuantity, removeFromCart, clearCart, isHydrated, cartTotal, cartItemCount
-  }), [cart, isHydrated, cartTotal, cartItemCount]);
+  const value = useMemo(
+    () => ({
+      cart,
+      addToCart,
+      updateCartQuantity,
+      removeFromCart,
+      clearCart,
+      isHydrated,
+      cartTotal,
+      cartItemCount,
+    }),
+    [
+      cart,
+      addToCart,
+      updateCartQuantity,
+      removeFromCart,
+      clearCart,
+      isHydrated,
+      cartTotal,
+      cartItemCount,
+    ],
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };

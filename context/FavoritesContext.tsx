@@ -1,5 +1,6 @@
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface FavoritesContextType {
   favorites: number[];
@@ -8,7 +9,6 @@ interface FavoritesContextType {
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
-const FAVORITES_STORAGE_KEY = '@favorites';
 
 export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   const [favorites, setFavorites] = useState<number[]>([]);
@@ -17,7 +17,7 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadFavorites = async () => {
       try {
-        const stored = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+        const stored = await AsyncStorage.getItem(STORAGE_KEYS.favorites);
         if (stored) {
           setFavorites(JSON.parse(stored));
         }
@@ -32,22 +32,27 @@ export const FavoritesProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (isHydrated) {
-      AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites)).catch(e => 
+      AsyncStorage.setItem(STORAGE_KEYS.favorites, JSON.stringify(favorites)).catch(e => 
         console.error('Failed to save favorites:', e)
       );
     }
   }, [favorites, isHydrated]);
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = useCallback((id: number) => {
     setFavorites(prev =>
-      prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id],
     );
-  };
+  }, []);
 
-  const isFavorite = (id: number) => favorites.includes(id);
+  const isFavorite = useCallback((id: number) => favorites.includes(id), [favorites]);
+
+  const value = useMemo(
+    () => ({ favorites, toggleFavorite, isFavorite }),
+    [favorites, toggleFavorite, isFavorite],
+  );
 
   return (
-    <FavoritesContext.Provider value={{ favorites, toggleFavorite, isFavorite }}>
+    <FavoritesContext.Provider value={value}>
       {children}
     </FavoritesContext.Provider>
   );

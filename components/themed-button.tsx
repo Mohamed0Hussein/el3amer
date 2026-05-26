@@ -2,14 +2,16 @@ import { useTheme } from '@/hooks/useTheme';
 import React from 'react';
 import {
     ActivityIndicator,
+    Platform,
+    Pressable,
+    PressableProps,
     StyleSheet,
-    TouchableOpacity,
-    TouchableOpacityProps,
+    ViewStyle,
 } from 'react-native';
 import { ThemedText } from './themed-text';
 
-interface ThemedButtonProps extends TouchableOpacityProps {
-  variant?: 'primary' | 'secondary' | 'outline';
+interface ThemedButtonProps extends PressableProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'text';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   children: string;
@@ -26,15 +28,16 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const getButtonStyle = () => {
+  const getButtonStyle = (): ViewStyle => {
     switch (variant) {
       case 'primary':
         return {
           backgroundColor: disabled ? theme.gray[300] : theme.primary[500],
+          ...(disabled ? {} : styles.elevation),
         };
       case 'secondary':
         return {
-          backgroundColor: disabled ? theme.gray[200] : theme.gray[100],
+          backgroundColor: disabled ? theme.gray[200] : theme.primary[50],
         };
       case 'outline':
         return {
@@ -42,9 +45,14 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
           borderWidth: 1,
           borderColor: disabled ? theme.gray[300] : theme.primary[500],
         };
+      case 'text':
+        return {
+          backgroundColor: 'transparent',
+        };
       default:
         return {
           backgroundColor: disabled ? theme.gray[300] : theme.primary[500],
+          ...(disabled ? {} : styles.elevation),
         };
     }
   };
@@ -54,9 +62,9 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
       case 'primary':
         return 'inverse';
       case 'secondary':
-        return 'primary';
       case 'outline':
-        return disabled ? 'tertiary' : 'success';
+      case 'text':
+        return disabled ? 'tertiary' : 'primary';
       default:
         return 'inverse';
     }
@@ -64,22 +72,28 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
 
   const getPadding = () => {
     switch (size) {
-      case 'sm': return { paddingVertical: 8, paddingHorizontal: 12 };
-      case 'md': return { paddingVertical: 12, paddingHorizontal: 16 };
-      case 'lg': return { paddingVertical: 16, paddingHorizontal: 20 };
-      default: return { paddingVertical: 12, paddingHorizontal: 16 };
+      case 'sm': return { paddingVertical: 8, paddingHorizontal: 16 };
+      case 'md': return { paddingVertical: 12, paddingHorizontal: 24 };
+      case 'lg': return { paddingVertical: 16, paddingHorizontal: 32 };
+      default: return { paddingVertical: 12, paddingHorizontal: 24 };
     }
   };
 
+  const rippleColor = variant === 'primary' 
+    ? 'rgba(255, 255, 255, 0.2)' 
+    : theme.primary[100];
+
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ pressed }) => [
         styles.button,
         getButtonStyle(),
         getPadding(),
-        style,
+        (pressed && Platform.OS !== 'android') && { opacity: 0.7 },
+        typeof style === 'function' ? style({ pressed }) : style,
       ]}
       disabled={disabled || loading}
+      android_ripple={{ color: rippleColor, borderless: false }}
       {...props}
     >
       {loading ? (
@@ -92,23 +106,40 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
           variant={getTextColor() as any}
           size={size === 'sm' ? 'sm' : 'base'}
           weight="semibold"
-          style={styles.buttonText}
+          style={[styles.buttonText, variant !== 'primary' && { color: disabled ? theme.gray[400] : theme.primary[500] }]}
         >
           {children}
         </ThemedText>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 8,
+    borderRadius: 100, // Material pill shape
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    overflow: 'hidden', // to contain the ripple effect within the pill shape
   },
   buttonText: {
     textAlign: 'center',
+  },
+  elevation: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
+      }
+    }),
   },
 });

@@ -10,9 +10,12 @@ import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import { QueryClientProvider } from '@tanstack/react-query';
+import React, { memo } from "react";
 import { ActivityIndicator } from "react-native";
 import AddressScreen from "./AddressScreen";
+import EditAddressScreen from "./EditAddressScreen";
 import CartScreen from "./CartScreen";
 import ChangePasswordScreen from "./ChangePasswordScreen";
 import EditProfileScreen from "./EditProfileScreen";
@@ -132,6 +135,7 @@ function RootNavigator() {
           <Stack.Screen name={ROUTES.PRODUCT_DETAILS} component={ProductDetailsScreen} />
           <Stack.Screen name={ROUTES.ORDER_DETAILS} component={OrderDetailsScreen} />
           <Stack.Screen name={ROUTES.ADDRESSES} component={AddressScreen} />
+          <Stack.Screen name={ROUTES.EDIT_ADDRESS} component={EditAddressScreen} />
           <Stack.Screen name={ROUTES.CHANGE_PASSWORD} component={ChangePasswordScreen} />
         </>
       ) : (
@@ -142,8 +146,7 @@ function RootNavigator() {
   );
 }
 
-// Cart tab icon component
-const CartTabIcon = ({
+const CartTabIcon = memo(function CartTabIcon({
   color,
   size,
   focused,
@@ -151,8 +154,9 @@ const CartTabIcon = ({
   color: string;
   size: number;
   focused: boolean;
-}) => {
-  const { cartItemCount } = useCartContext(); 
+}) {
+  const { cartItemCount } = useCartContext();
+  const { theme } = useTheme();
   const count = cartItemCount;
 
   return (
@@ -168,7 +172,7 @@ const CartTabIcon = ({
             position: "absolute",
             top: -4,
             right: -10,
-            backgroundColor: "#ef4444",
+            backgroundColor: theme.status.error,
             borderRadius: 10,
             minWidth: 18,
             height: 18,
@@ -179,7 +183,7 @@ const CartTabIcon = ({
         >
           <ThemedText
             style={{
-              color: "#fff",
+              color: theme.text.inverse,
               fontSize: 10,
               fontWeight: "bold",
             }}
@@ -190,7 +194,7 @@ const CartTabIcon = ({
       )}
     </ThemedView>
   );
-};
+});
 
 export default function RootLayout() {
   return (
@@ -215,8 +219,6 @@ function RtlWrapper({ children }: { children: React.ReactNode }) {
 }
 
 const AppProviders = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = new QueryClient()
-
   return (
     <LocalizationProvider>
       <AuthProvider>
@@ -234,12 +236,13 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => {
 
 const LoadingScreen = () => {
   const { theme } = useTheme();
+  const { t } = useLocalization();
   return (
     <ThemedView
       style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background.primary }}
     >
       <ActivityIndicator size="large" color={theme.primary[500]} />
-      <ThemedText style={{ marginTop: 12 }} variant="secondary">Loading...</ThemedText>
+      <ThemedText style={{ marginTop: 12 }} variant="secondary">{t('loading')}</ThemedText>
     </ThemedView>
   );
 };

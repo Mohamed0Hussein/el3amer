@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { login, loginWithGoogle, logout, signup } from '@/services/auth';
 import { GoogleUserInfo, useGoogleAuth } from '@/services/googleAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,14 +35,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
 
-  const STORAGE_KEY = '@auth:user';
   const { signInWithGoogle, isReady } = useGoogleAuth();
 
   // Load user from local storage on app start
   useEffect(() => {
     const hydrate = async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        const raw = await AsyncStorage.getItem(STORAGE_KEYS.authUser);
         if (raw) setUser(JSON.parse(raw));
       } catch (e) {
         console.warn('Failed to hydrate auth user', e);
@@ -56,9 +56,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const persist = async () => {
       if (user) {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        await AsyncStorage.setItem(STORAGE_KEYS.authUser, JSON.stringify(user));
       } else {
-        await AsyncStorage.removeItem(STORAGE_KEY);
+        await AsyncStorage.removeItem(STORAGE_KEYS.authUser);
       }
     };
     persist();
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await logout(user?.token || '');
       setUser(null);
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem(STORAGE_KEYS.authUser);
     } finally {
       setIsLoggingOut(false);
     }

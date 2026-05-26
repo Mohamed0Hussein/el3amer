@@ -3,6 +3,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { ProductListSkeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { tokens } from '@/constants/tokens';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { getProducts } from '@/services/products';
@@ -10,9 +11,10 @@ import { Category } from '@/types/Category';
 import { LocalizedProduct } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     FlatList,
+    Platform,
     RefreshControl,
     ScrollView,
     StatusBar,
@@ -21,6 +23,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -29,6 +32,7 @@ export default function HomeScreen() {
 
   const { theme } = useTheme();
   const { t } = useLocalization();
+  const insets = useSafeAreaInsets();
 
   const { data: products = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['products'],
@@ -54,8 +58,7 @@ export default function HomeScreen() {
       return matchesCategory && matchesSearch;
     });
 
-    // Sorting logic
-    return result.sort((a, b) => {
+    return [...result].sort((a, b) => {
       if (sortBy === 'name') {
         const nameA = t(a.nameKey as any).toLowerCase();
         const nameB = t(b.nameKey as any).toLowerCase();
@@ -67,16 +70,26 @@ export default function HomeScreen() {
     });
   }, [products, selectedCategory, searchQuery, sortBy, t]);
 
+  const renderProduct = useCallback(
+    ({ item }: { item: LocalizedProduct }) => <ProductCard product={item} />,
+    [],
+  );
+
+  const keyExtractor = useCallback((item: LocalizedProduct) => String(item.id), []);
+
   const onRefresh = () => {
     refetch();
   };
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.primary[500]}
+      />
       
       {/* Header */}
-      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
+      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500], paddingTop: insets.top + tokens.space.md }]}>
         <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
           {t('appTitle')}
         </ThemedText>
@@ -168,12 +181,16 @@ export default function HomeScreen() {
       ) : (
         <FlatList
           data={filteredProducts}
-          renderItem={({ item }) => <ProductCard product={item} />}
-          keyExtractor={item => item.id.toString()}
+          renderItem={renderProduct}
+          keyExtractor={keyExtractor}
           numColumns={2}
           columnWrapperStyle={styles.productRow}
           contentContainerStyle={styles.productsContainer}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+          windowSize={7}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -205,9 +222,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 20,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50,
-    paddingBottom: 20,
+    paddingHorizontal: tokens.space.xl,
+    paddingBottom: tokens.space.xl,
   },
   headerTitle: {
     marginBottom: 16,
