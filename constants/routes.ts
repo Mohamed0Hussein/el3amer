@@ -30,5 +30,6 @@ export const ROUTES = {
   PRODUCT_DETAILS: 'product_details',
   ORDER_DETAILS: 'order_details',
   ADDRESSES: 'addresses',
+  EDIT_ADDRESS: 'edit_address',
   CHANGE_PASSWORD: 'change_password',
 } as const;

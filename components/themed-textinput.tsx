@@ -1,6 +1,6 @@
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     StyleSheet,
     TextInput,
@@ -24,28 +24,44 @@ export const ThemedTextInput: React.FC<ThemedTextInputProps> = ({
   error,
   containerStyle,
   style, 
+  onFocus,
+  onBlur,
   ...props 
 }) => {
   const { theme } = useTheme();
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = (e: any) => {
+    setIsFocused(true);
+    if (onFocus) onFocus(e);
+  };
+
+  const handleBlur = (e: any) => {
+    setIsFocused(false);
+    if (onBlur) onBlur(e);
+  };
 
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <ThemedText variant="secondary" size="sm" weight="medium" style={styles.label}>
+        <ThemedText variant="secondary" size="sm" weight="medium" style={[styles.label, isFocused && { color: theme.primary[500] }]}>
           {label}
         </ThemedText>
       )}
       
       <View style={[
         styles.inputWrapper, 
-        { backgroundColor: theme.background.card },
-        error && { borderColor: theme.status.error, borderWidth: 1 }
+        { 
+          backgroundColor: theme.background.primary,
+          borderColor: error ? theme.status.error : (isFocused ? theme.primary[500] : theme.gray[400]),
+          borderWidth: isFocused ? 2 : 1,
+        }
       ]}>
         {icon && (
           <Ionicons 
             name={icon} 
             size={20} 
-            color={theme.gray[400]} 
+            color={error ? theme.status.error : (isFocused ? theme.primary[500] : theme.gray[400])} 
             style={styles.inputIcon} 
           />
         )}
@@ -60,6 +76,8 @@ export const ThemedTextInput: React.FC<ThemedTextInputProps> = ({
             style,
           ]}
           placeholderTextColor={theme.gray[400]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
         
@@ -84,12 +102,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    marginBottom: 8,
+    marginBottom: 4,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 4, // Material UI Outlined Text Field border radius
     paddingHorizontal: 16,
     height: 56,
   },

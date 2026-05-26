@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ROUTES } from '@/constants/routes';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +17,7 @@ interface Address {
 }
 
 export default function AddressScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { t } = useLocalization();
   
@@ -24,6 +25,14 @@ export default function AddressScreen() {
     { id: '1', type: 'home', address: '123 Main Street, New York, NY', details: 'Apt 4B, Building A', isDefault: true },
     { id: '2', type: 'work', address: '456 Business Blvd, Brooklyn, NY', details: 'Floor 12, Office 1204', isDefault: false },
   ]);
+
+  const handleEditAddress = (address: Address) => {
+    navigation.navigate(ROUTES.EDIT_ADDRESS, { address });
+  };
+
+  const handleAddAddress = () => {
+    navigation.navigate(ROUTES.EDIT_ADDRESS);
+  };
 
   const AddressCard = ({ item }: { item: Address }) => (
     <ThemedView variant="card" style={[styles.addressCard, item.isDefault && { borderColor: theme.primary[500], borderWidth: 2 }]}>
@@ -50,7 +59,7 @@ export default function AddressScreen() {
           <ThemedText variant="tertiary" size="xs">{item.details}</ThemedText>
         </View>
       </View>
-      <TouchableOpacity style={styles.editBtn}>
+      <TouchableOpacity style={styles.editBtn} onPress={() => handleEditAddress(item)}>
         <Ionicons name="create-outline" size={20} color={theme.gray[400]} />
       </TouchableOpacity>
     </ThemedView>
@@ -75,7 +84,7 @@ export default function AddressScreen() {
           <AddressCard key={addr.id} item={addr} />
         ))}
 
-        <TouchableOpacity style={[styles.addButton, { borderStyle: 'dashed', borderColor: theme.gray[300], borderWidth: 2 }]}>
+        <TouchableOpacity style={[styles.addButton, { borderStyle: 'dashed', borderColor: theme.gray[300], borderWidth: 2 }]} onPress={handleAddAddress}>
           <Ionicons name="add" size={24} color={theme.primary[500]} />
           <ThemedText style={{ color: theme.primary[500], marginLeft: 8 }} weight="bold">
             Add New Address

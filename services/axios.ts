@@ -1,28 +1,14 @@
+import { env } from '@/config/env';
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 /**
- * Axios Configuration for React Native
- * 
- * IMPORTANT: In React Native, 'localhost' won't work!
- * You need to use your machine's actual IP address.
- * 
- * To find your IP:
- * - Windows: Open CMD and run `ipconfig` (look for IPv4 Address)
- * - Mac/Linux: Open Terminal and run `ifconfig` or `ip addr`
- * 
- * Configuration options:
- * 1. Set environment variable: EXPO_PUBLIC_API_URL=http://192.168.1.xxx:3000
- *    (Replace xxx with your actual IP)
- * 2. Or update the default value below with your IP
- * 
- * Example: 'http://192.168.1.100:3000'
+ * Base URL from `EXPO_PUBLIC_API_URL` or `expo.extra.apiUrl` (see `config/env.ts`).
+ * On device, use your LAN IP instead of localhost.
  */
-const API_BASE_URL =  'https://primacy-backend.vercel.app';
-
-// Create axios instance with default configuration
 const axiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: `${env.apiOrigin}/api/v1`,
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
@@ -33,7 +19,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      const rawUser = await AsyncStorage.getItem('@auth:user');
+      const rawUser = await AsyncStorage.getItem(STORAGE_KEYS.authUser);
       if (rawUser) {
         const user = JSON.parse(rawUser);
         if (user.token) {
