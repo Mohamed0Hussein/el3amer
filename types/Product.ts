@@ -8,7 +8,7 @@ export interface Product {
   category: string;
   price: number;
   unit: string;
-  emoji: string;
+  image: string;
   stock: number;
 }
 

@@ -13,15 +13,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    FlatList,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,7 +36,7 @@ export default function HomeScreen() {
 
   const { data: products = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['products'],
-    queryFn: getProducts,
+    queryFn: () => getProducts(selectedCategory, searchQuery, true),
   });
 
   const categories: Category[] = [

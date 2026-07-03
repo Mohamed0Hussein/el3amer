@@ -1,12 +1,12 @@
 import { useTheme } from '@/hooks/useTheme';
 import React from 'react';
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    PressableProps,
-    StyleSheet,
-    ViewStyle,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  PressableProps,
+  StyleSheet,
+  ViewStyle,
 } from 'react-native';
 import { ThemedText } from './themed-text';
 
@@ -79,8 +79,8 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
     }
   };
 
-  const rippleColor = variant === 'primary' 
-    ? 'rgba(255, 255, 255, 0.2)' 
+  const rippleColor = variant === 'primary'
+    ? 'rgba(255, 255, 255, 0.2)'
     : theme.primary[100];
 
   return (

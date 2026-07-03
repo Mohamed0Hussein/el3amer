@@ -2,10 +2,10 @@ import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    StyleSheet,
-    TextInput,
-    TextInputProps,
-    View
+  StyleSheet,
+  TextInput,
+  TextInputProps,
+  View
 } from 'react-native';
 import { ThemedText } from './themed-text';
 

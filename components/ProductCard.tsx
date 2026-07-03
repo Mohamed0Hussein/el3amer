@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { memo, useCallback } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet } from 'react-native';
+import { Dimensions, Image, Platform, Pressable, StyleSheet } from 'react-native';
 import { ThemedButton } from './themed-button';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -19,6 +19,7 @@ const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<AuthenticatedStackParamList>;
 
 export const ProductCard = memo(function ProductCard({ product }: { product: LocalizedProduct }) {
+  console.log(product.image)
   const navigation = useNavigation<Nav>();
   const { addToCart } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
@@ -51,7 +52,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Loc
           ]}
         >
           <ThemedView style={styles.productHeader}>
-            <ThemedText style={styles.productEmoji}>{product.emoji}</ThemedText>
+            <Image source={{ uri: product.image }} />
             <Pressable 
               onPress={onToggleFavorite} 
               style={({ pressed }) => [
@@ -76,7 +77,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Loc
             style={styles.productName}
             numberOfLines={1}
           >
-            {t(product.nameKey as any)}
+            {t(product.name as any)}
           </ThemedText>
           
           <ThemedView style={styles.priceContainer}>
@@ -84,7 +85,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Loc
               ${product.price}
             </ThemedText>
             <ThemedText variant="tertiary" size="sm" style={styles.productUnit}>
-              /{t(product.unitKey as any)}
+              /{t(product.unit as any)}
             </ThemedText>
           </ThemedView>
           
