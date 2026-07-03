@@ -11,6 +11,8 @@ interface User {
   profilePicture?: string;
   authProvider: 'email' | 'google';
   token: string;
+  address?: string;
+  phone?: string;
 }
 
 interface AuthContextType {
