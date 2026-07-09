@@ -1,6 +1,6 @@
 import { ROUTES } from "@/constants/routes";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { router } from 'expo-router';
 import React from "react";
 import { Image, ScrollView, StatusBar, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -15,7 +15,7 @@ export default function ProfileScreen() {
   const { favorites } = useFavorites();
   const { theme } = useTheme();
   const { user } = useAuth()
-  const navigation = useNavigation();
+  
   const { t } = useLocalization();
 
   return (
@@ -59,7 +59,7 @@ export default function ProfileScreen() {
           <ThemedView variant="default" style={styles.profileMenu}>
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}
-              onPress={() => navigation.navigate(ROUTES.ORDERS as never)}
+              onPress={() => router.push(ROUTES.ORDERS as never)}
             >
               <Ionicons name="cube-outline" size={24} color={theme.gray[500]} />
               <ThemedText
@@ -75,7 +75,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}
-              onPress={() => navigation.navigate(ROUTES.FAVORITES as never)}
+              onPress={() => router.push(ROUTES.FAVORITES as never)}
             >
               <Ionicons name="heart-outline" size={24} color={theme.gray[500]} />
               <ThemedText
@@ -91,7 +91,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity 
               style={[styles.menuItem, { backgroundColor: theme.gray[50] }]}
-              onPress={() => navigation.navigate(ROUTES.ADDRESSES as never)}
+              onPress={() => router.push(ROUTES.ADDRESSES as never)}
             >
               <Ionicons name="location-outline" size={24} color={theme.gray[500]} />
               <ThemedText
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={24} color={theme.gray[400]} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]} onPress={() => navigation.navigate(ROUTES.SETTINGS as never)}>
+            <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.gray[50] }]} onPress={() => router.push(ROUTES.SETTINGS as never)}>
               <Ionicons name="settings-outline" size={24} color={theme.gray[500]} />
               <ThemedText
                 variant="secondary"

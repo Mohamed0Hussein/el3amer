@@ -10,7 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { getProducts } from '@/services/products';
 import { LocalizedProduct } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
 import { FlatList, StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
@@ -19,7 +19,7 @@ export default function FavoritesScreen() {
   const { favorites } = useFavorites();
   const { theme } = useTheme();
   const { t } = useLocalization();
-  const navigation = useNavigation();
+  
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
@@ -37,7 +37,7 @@ export default function FavoritesScreen() {
       {/* Header */}
       <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
         <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+          onPress={() => router.back()} 
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
@@ -64,7 +64,7 @@ export default function FavoritesScreen() {
               title={t('noFavorites')}
               message={t('noFavoritesMessage')}
               actionLabel={t('startShopping')}
-              onAction={() => navigation.navigate(ROUTES.HOME as never)}
+              onAction={() => router.push(ROUTES.HOME as any)}
             />
           }
         />

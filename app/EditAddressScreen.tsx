@@ -5,7 +5,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
@@ -18,8 +18,7 @@ interface Address {
 }
 
 export default function EditAddressScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
+    const route = useRoute();
   const { theme, tokens } = useTheme();
   const { t } = useLocalization();
 
@@ -33,7 +32,7 @@ export default function EditAddressScreen() {
 
   const handleSave = () => {
     // Save logic here (e.g., API call, update context)
-    navigation.goBack();
+    router.back();
   };
 
   const TypeButton = ({ value, icon, label }: { value: 'home' | 'work' | 'other', icon: any, label: string }) => {
@@ -75,7 +74,7 @@ export default function EditAddressScreen() {
       
       {/* Header */}
       <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
         </TouchableOpacity>
         <ThemedText variant="inverse" size="2xl" weight="bold">

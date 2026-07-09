@@ -4,14 +4,13 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Order } from '@/types/Order';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function OrderDetailsScreen() {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { order } = route.params as { order: Order };
+  const params = useLocalSearchParams();
+  const order = typeof params.order === 'string' ? JSON.parse(params.order) : params.order;
   const { theme } = useTheme();
   const { t } = useLocalization();
 
@@ -38,7 +37,7 @@ export default function OrderDetailsScreen() {
       
       {/* Header */}
       <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
         </TouchableOpacity>
         <ThemedText variant="inverse" size="2xl" weight="bold">

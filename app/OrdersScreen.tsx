@@ -8,15 +8,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { getOrders } from '@/services/orders';
 import { Order } from '@/types/Order';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
+
 import React from 'react';
 import { FlatList, RefreshControl, StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function OrdersScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
-  const navigation = useNavigation();
+  
 
   const { data: orders = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['orders'],
@@ -26,7 +27,7 @@ export default function OrdersScreen() {
   const OrderItem = ({ order }: { order: Order }) => (
     <TouchableOpacity 
       activeOpacity={0.7}
-      onPress={() => (navigation.navigate as any)(ROUTES.ORDER_DETAILS, { order })}
+      onPress={() => router.push({ pathname: ROUTES.ORDER_DETAILS as any, params: { order: JSON.stringify(order) } })}
     >
       <ThemedView variant="card" style={styles.orderCard}>
         <ThemedView variant="default" style={styles.orderHeader}>
@@ -74,7 +75,7 @@ export default function OrdersScreen() {
       {/* Header */}
       <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
         <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
+          onPress={() => router.back()} 
           style={styles.backButton}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
@@ -107,7 +108,7 @@ export default function OrdersScreen() {
               title={t('noOrders')}
               message={t('noOrdersMessage')}
               actionLabel={t('startShopping')}
-              onAction={() => navigation.navigate(ROUTES.HOME as never)}
+              onAction={() => router.push(ROUTES.HOME as any)}
             />
           }
         />
