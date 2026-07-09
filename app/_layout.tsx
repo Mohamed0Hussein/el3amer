@@ -1,200 +1,62 @@
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { ROUTES } from "@/constants/routes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { CartContextProvider, useCartContext } from "@/context/CartContext";
+import { CartContextProvider } from "@/context/CartContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { LocalizationProvider, useLocalization } from "@/context/LocalizationContext";
 import { useTheme } from "@/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { queryClient } from '@/lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
-import React, { memo } from "react";
+import { Stack, router, useSegments } from 'expo-router';
+import React, { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
-import AddressScreen from "./AddressScreen";
-import EditAddressScreen from "./EditAddressScreen";
-import CartScreen from "./CartScreen";
-import ChangePasswordScreen from "./ChangePasswordScreen";
-import EditProfileScreen from "./EditProfileScreen";
-import FavoritesScreen from "./FavoritesScreen";
-import HomeScreen from "./index";
-import LoginScreen from "./LoginScreen";
-import OrderDetailsScreen from "./OrderDetailsScreen";
-import OrdersScreen from "./OrdersScreen";
-import ProductDetailsScreen from "./ProductDetailsScreen";
-import ProfileScreen from "./ProfileScreen";
-import SettingsScreen from "./SettingsScreen";
-import SignUpScreen from "./SignUpScreen";
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
 
-// Main app tabs (protected routes)
-function MainAppTabs() {
-  const { theme } = useTheme();
-  const { t } = useLocalization();
+function useProtectedRoute(isAuthenticated: boolean, isHydrating: boolean) {
+  const segments = useSegments();
 
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: true,
-        tabBarStyle: {
-          backgroundColor: theme.background.secondary,
-          borderTopColor: theme.gray[200],
-          paddingBottom: 8,
-        },
-        tabBarActiveTintColor: theme.primary[500],
-        tabBarInactiveTintColor: theme.gray[400],
-      }}
-    >
-      <Tab.Screen
-        name={ROUTES.HOME}
-        component={HomeScreen}
-        options={{
-          tabBarLabel : t('home'),
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
+  useEffect(() => {
+    if (isHydrating) return;
 
-      {/* 🛒 Cart tab with badge */}
-      <Tab.Screen
-        name={ROUTES.CART}
-        component={CartScreen}
-        options={{
-          tabBarLabel : t('cart'),
-          tabBarIcon: ({ focused, color, size }) => (
-            <CartTabIcon color={color} size={size} focused={focused} />
-          ),
-        }}
-      />
+    const inAuthGroup = segments[0] === '(auth)';
 
-      <Tab.Screen
-        name={ROUTES.PROFILE}
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: t('profile'),
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-    </Tab.Navigator>
-  );
+    if (!isAuthenticated && !inAuthGroup) {
+      router.replace('/LoginScreen');
+    } else if (isAuthenticated && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, isHydrating, segments]);
 }
 
-// Auth stack (public routes)
-function AuthStack() {
-  return (
-    <Stack.Navigator 
-      screenOptions={{ headerShown: false }}
-      initialRouteName={ROUTES.LOGIN}
-    >
-      <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />
-      <Stack.Screen name={ROUTES.SIGN_UP} component={SignUpScreen} />
-    </Stack.Navigator>
-  );
-}
-
-// Root navigator that switches between auth and main app
 function RootNavigator() {
   const { isAuthenticated, isHydrating } = useAuth();
+  
+  useProtectedRoute(isAuthenticated, isHydrating);
 
   if (isHydrating) {
     return <LoadingScreen />;
   }
 
-  // Use key prop to force remount when auth state changes
   return (
     <>
       <NetworkBanner />
-      <Stack.Navigator 
-        key={isAuthenticated ? 'authenticated' : 'unauthenticated'}
-        screenOptions={{ headerShown: false }}
-      initialRouteName={isAuthenticated ? ROUTES.APP : ROUTES.AUTH}
-    >
-      {isAuthenticated ? (
-        <>
-          <Stack.Screen name={ROUTES.APP} component={MainAppTabs} />
-          <Stack.Screen name={ROUTES.SETTINGS} component={SettingsScreen} />
-          <Stack.Screen name={ROUTES.EDIT_PROFILE} component={EditProfileScreen} />
-          <Stack.Screen name={ROUTES.FAVORITES} component={FavoritesScreen} />
-          <Stack.Screen name={ROUTES.ORDERS} component={OrdersScreen} />
-          <Stack.Screen name={ROUTES.PRODUCT_DETAILS} component={ProductDetailsScreen} />
-          <Stack.Screen name={ROUTES.ORDER_DETAILS} component={OrderDetailsScreen} />
-          <Stack.Screen name={ROUTES.ADDRESSES} component={AddressScreen} />
-          <Stack.Screen name={ROUTES.EDIT_ADDRESS} component={EditAddressScreen} />
-          <Stack.Screen name={ROUTES.CHANGE_PASSWORD} component={ChangePasswordScreen} />
-        </>
-      ) : (
-        <Stack.Screen name={ROUTES.AUTH} component={AuthStack} />
-      )}
-    </Stack.Navigator>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="SettingsScreen" />
+        <Stack.Screen name="EditProfileScreen" />
+        <Stack.Screen name="FavoritesScreen" />
+        <Stack.Screen name="OrdersScreen" />
+        <Stack.Screen name="ProductDetailsScreen" />
+        <Stack.Screen name="OrderDetailsScreen" />
+        <Stack.Screen name="AddressScreen" />
+        <Stack.Screen name="EditAddressScreen" />
+        <Stack.Screen name="ChangePasswordScreen" />
+        <Stack.Screen name="AboutScreen" />
+      </Stack>
     </>
   );
 }
-
-const CartTabIcon = memo(function CartTabIcon({
-  color,
-  size,
-  focused,
-}: {
-  color: string;
-  size: number;
-  focused: boolean;
-}) {
-  const { cartItemCount } = useCartContext();
-  const { theme } = useTheme();
-  const count = cartItemCount;
-
-  return (
-    <ThemedView style={{ position: 'relative' }}>
-      <Ionicons
-        name={focused ? "cart" : "cart-outline"}
-        size={size}
-        color={color}
-      />
-      {count > 0 && (
-        <ThemedView
-          style={{
-            position: "absolute",
-            top: -4,
-            right: -10,
-            backgroundColor: theme.status.error,
-            borderRadius: 10,
-            minWidth: 18,
-            height: 18,
-            justifyContent: "center",
-            alignItems: "center",
-            paddingHorizontal: 4,
-          }}
-        >
-          <ThemedText
-            style={{
-              color: theme.text.inverse,
-              fontSize: 10,
-              fontWeight: "bold",
-            }}
-          >
-            {count > 9 ? "9+" : count}
-          </ThemedText>
-        </ThemedView>
-      )}
-    </ThemedView>
-  );
-});
 
 export default function RootLayout() {
   return (

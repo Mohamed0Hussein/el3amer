@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -30,8 +30,7 @@ export default function SignUpScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const { theme } = useTheme();
-  const navigation = useNavigation();
-  const { signupUser, isLoading: isAuthLoading } = useAuth()
+    const { signupUser, isLoading: isAuthLoading } = useAuth()
   const { t } = useLocalization();
 
   const handleInputChange = (field: string, value: string) => {
@@ -73,7 +72,7 @@ export default function SignUpScreen() {
   };
 
   const handleLogin = () => {
-    navigation.navigate(ROUTES.LOGIN as never);
+    router.push(ROUTES.LOGIN as never);
   };
 
   return (

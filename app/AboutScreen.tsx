@@ -3,21 +3,21 @@ import { ThemedView } from '@/components/themed-view';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function AboutScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
-  const navigation = useNavigation();
+  
 
   return (
     <ThemedView variant="primary" style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
       
       <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
         </TouchableOpacity>
         <ThemedText variant="inverse" size="2xl" weight="bold">

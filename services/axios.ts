@@ -1,7 +1,10 @@
 import { env } from '@/config/env';
+import { ROUTES } from '@/constants/routes';
 import { STORAGE_KEYS } from '@/constants/storageKeys';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { router } from 'expo-router';
+import { Alert } from 'react-native';
 
 /**
  * Base URL from `EXPO_PUBLIC_API_URL` or `expo.extra.apiUrl` (see `config/env.ts`).
@@ -50,6 +53,15 @@ axiosInstance.interceptors.response.use(
       const status = error.response.status;
       switch (status) {
         case 401:
+          if (error.response.data?.message === 'Invalid or expired token') {
+            AsyncStorage.removeItem(STORAGE_KEYS.authUser).catch(console.error);
+            Alert.alert(
+              'Session Expired',
+              'Your session has expired. Please log in again.',
+              [{ text: 'OK' }]
+            );
+            router.replace(ROUTES.LOGIN);
+          }
           error.message = 'Unauthorized. Please login again.';
           break;
         case 403:

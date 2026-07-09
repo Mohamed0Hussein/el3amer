@@ -7,13 +7,13 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { createOrder } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 
 import { ActivityIndicator, Alert, FlatList, StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
 
 const Cart = () => {
-  const navigation = useNavigation();
+  
   const {
     cart,
     updateCartQuantity,
@@ -44,7 +44,7 @@ const Cart = () => {
             text: t('ok'),
             onPress: () => {
               clearCart();
-              navigation.navigate(ROUTES.HOME as never);
+              router.push(ROUTES.HOME as never);
             },
           },
         ]
@@ -84,7 +84,7 @@ const Cart = () => {
           </ThemedText>
           <TouchableOpacity
             style={[styles.startShoppingButton, { backgroundColor: theme.primary[500] }]}>
-            <ThemedButton variant="primary" size='sm' style={styles.startShoppingText} onPress={() => navigation.navigate(ROUTES.HOME as never)}>
+            <ThemedButton variant="primary" size='sm' style={styles.startShoppingText} onPress={() => router.push(ROUTES.HOME as never)}>
               {t('startShopping')}
             </ThemedButton>
           </TouchableOpacity>

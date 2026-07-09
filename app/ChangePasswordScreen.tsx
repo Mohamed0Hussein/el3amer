@@ -6,7 +6,7 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { changePassword, checkPassword } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import { Alert, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -20,7 +20,7 @@ export default function ChangePasswordScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
   const { user } = useAuth();
-  const navigation = useNavigation();
+  
 
   const { data: isValid } = useQuery({
     queryKey: ['isPasswordCorrect', user?.id],
@@ -52,7 +52,7 @@ export default function ChangePasswordScreen() {
     try {
       await changePassword(currentPass, newPass, user?.token || '');
       Alert.alert(t('success'), t('passwordChangedMessage'), [
-        { text: t('ok'), onPress: () => navigation.goBack() }
+        { text: t('ok'), onPress: () => router.back() }
       ]);
     } catch (error: any) {
       Alert.alert(t('error'), error.message || 'Failed to change password');
@@ -67,7 +67,7 @@ export default function ChangePasswordScreen() {
       
       {/* Header */}
       <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
         </TouchableOpacity>
         <ThemedText variant="inverse" size="2xl" weight="bold">

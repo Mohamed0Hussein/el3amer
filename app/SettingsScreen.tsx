@@ -6,7 +6,7 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { SupportedLanguage } from '@/localization/translations';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 
@@ -16,7 +16,6 @@ export default function SettingsScreen() {
   const { language, setLanguage, t } = useLocalization();
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
-  const navigation = useNavigation();
 
   const languages: { code: SupportedLanguage; name: string; nativeName: string }[] = [
     { code: 'en', name: 'English', nativeName: 'English' },
@@ -40,12 +39,12 @@ export default function SettingsScreen() {
         <ThemedView variant="card" style={styles.card}>
           <ThemedText size="lg" weight="semibold" style={styles.sectionTitle}>{t('account')}</ThemedText>
           <ThemedText variant="tertiary" style={{ marginBottom: 12 }}>{user?.email}</ThemedText>
-          <TouchableOpacity style={[styles.row, { backgroundColor: theme.gray[50] }]} onPress={() => navigation.navigate(ROUTES.EDIT_PROFILE as never)}> 
+          <TouchableOpacity style={[styles.row, { backgroundColor: theme.gray[50] }]} onPress={() => router.push(ROUTES.EDIT_PROFILE as any)}> 
             <ThemedText>{t('editProfile')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 },user?.authProvider === 'google' && { opacity: 0.5 }]} 
-            onPress={() => navigation.navigate(ROUTES.CHANGE_PASSWORD as never)}
+            onPress={() => router.push(ROUTES.CHANGE_PASSWORD as any)}
             disabled={user?.authProvider === 'google'}
           > 
             <ThemedText>{t('changePassword')}</ThemedText>

@@ -6,10 +6,12 @@ import { useTheme } from '@/hooks/useTheme';
 import type { AuthenticatedStackParamList } from '@/types/navigation';
 import { LocalizedProduct } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { memo, useCallback } from 'react';
-import { Dimensions, Image, Platform, Pressable, StyleSheet } from 'react-native';
+import { Dimensions, Platform, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import { env } from '@/config/env';
 import { ThemedButton } from './themed-button';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -19,8 +21,6 @@ const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<AuthenticatedStackParamList>;
 
 export const ProductCard = memo(function ProductCard({ product }: { product: LocalizedProduct }) {
-  console.log(product.image)
-  const navigation = useNavigation<Nav>();
   const { addToCart } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
   const { theme, tokens } = useTheme();
@@ -28,9 +28,13 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Loc
 
   const isFav = favorites.includes(product.id);
 
+  const imageUrl = product.image?.startsWith('http') 
+    ? product.image 
+    : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
+
   const openDetails = useCallback(() => {
-    navigation.navigate(ROUTES.PRODUCT_DETAILS, { product });
-  }, [navigation, product]);
+    router.push({ pathname: ROUTES.PRODUCT_DETAILS as any, params: { product: JSON.stringify(product) } });
+  }, [product]);
 
   const onToggleFavorite = useCallback(() => {
     toggleFavorite(product.id);
@@ -52,7 +56,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Loc
           ]}
         >
           <ThemedView style={styles.productHeader}>
-            <Image source={{ uri: product.image }} />
+            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="contain" />
             <Pressable 
               onPress={onToggleFavorite} 
               style={({ pressed }) => [
@@ -130,6 +134,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  productImage: {
+    width: 80,
+    height: 80,
   },
   productEmoji: {
     fontSize: 48,

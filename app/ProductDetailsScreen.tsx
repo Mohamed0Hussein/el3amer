@@ -1,26 +1,32 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { env } from '@/config/env';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { LocalizedProduct } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ProductDetailsScreen() {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { product } = route.params as { product: LocalizedProduct };
-  const { theme } = useTheme();
+  const params = useLocalSearchParams();
+  const product = typeof params.product === 'string' ? JSON.parse(params.product) : params.product;
+  const { theme } = useTheme(); 
+  const productImageSize = { width: '100%', height: 350 };  
   const { t } = useLocalization();
   const { addToCart } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
   const [quantity, setQuantity] = useState(1);
 
   const isFav = favorites.includes(product.id);
+
+  const imageUrl = product.image?.startsWith('http') 
+    ? product.image 
+    : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
 
   const handleDecrease = () => {
     if (quantity > 1) setQuantity(quantity - 1);
@@ -44,7 +50,7 @@ export default function ProductDetailsScreen() {
       <View style={styles.header}>
         <TouchableOpacity 
           style={[styles.backButton, { backgroundColor: theme.background.card }]} 
-          onPress={() => navigation.goBack()}
+          onPress={() => router.back()}
         >
           <Ionicons name="chevron-back" size={24} color={theme.text.primary} />
         </TouchableOpacity>
@@ -63,32 +69,31 @@ export default function ProductDetailsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Product Image Placeholder */}
-        <View style={[styles.imageContainer, { backgroundColor: theme.gray[50] }]}>
-          <ThemedText style={styles.emoji}>{product.emoji}</ThemedText>
-        </View>
-
+        <ThemedView style={[styles.imageContainer, { backgroundColor: theme.gray[50] }]}>
+          <Image source={{ uri: imageUrl }} style={productImageSize} contentFit="cover" />
+        </ThemedView>
         <View style={styles.content}>
           <ThemedView variant="default" style={styles.infoRow}>
-            <ThemedView variant="default">
+            <ThemedView variant="default" style={{ flex: 1, paddingRight: 16 }}>
               <ThemedText variant="primary" size="2xl" weight="bold">
-                {t(product.nameKey as any)}
+                {product.name}
               </ThemedText>
               <ThemedText variant="tertiary" size="base">
                 {product.category.toUpperCase()}
               </ThemedText>
             </ThemedView>
-            <ThemedView variant="default">
+            <ThemedView variant="default" style={{ alignItems: 'flex-end' }}>
               <ThemedText variant="success" size="2xl" weight="bold">
                 ${product.price}
               </ThemedText>
               <ThemedText variant="tertiary" size="sm" style={{ textAlign: 'right' }}>
-                /{t(product.unitKey as any)}
+                /{t(product.unit as any)}
               </ThemedText>
             </ThemedView>
           </ThemedView>
 
           <ThemedText variant="secondary" size="base" style={styles.description}>
-            Fresh and high-quality {t(product.nameKey as any).toLowerCase()} delivered directly to your doorstep. Perfect for your daily needs and healthy lifestyle.
+            Fresh and high-quality {product.name.toLowerCase()} delivered directly to your doorstep. Perfect for your daily needs and healthy lifestyle.
           </ThemedText>
 
           <View style={styles.quantityContainer}>
@@ -117,11 +122,6 @@ export default function ProductDetailsScreen() {
             <View style={styles.featureItem}>
               <Ionicons name="time-outline" size={20} color={theme.primary[500]} />
               <ThemedText weight="semibold">30-40 min</ThemedText>
-            </View>
-            <View style={styles.featureDivider} />
-            <View style={styles.featureItem}>
-              <Ionicons name="leaf-outline" size={20} color="#10b981" />
-              <ThemedText weight="semibold">Organic</ThemedText>
             </View>
           </ThemedView>
         </View>

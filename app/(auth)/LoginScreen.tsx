@@ -8,7 +8,7 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { forgotPassword, loginWithGoogle } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -27,8 +27,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   
   const { theme } = useTheme();
-  const navigation = useNavigation();
-  const { loginUser, loginUserWithGoogle, isLoading, isGoogleLoading } = useAuth();
+    const { loginUser, loginUserWithGoogle, isLoading, isGoogleLoading } = useAuth();
   const { t } = useLocalization();
 
   const validateEmail = (email: string) => {
@@ -100,7 +99,7 @@ export default function LoginScreen() {
   };
 
   const handleSignUp = () => {
-    navigation.navigate(ROUTES.SIGN_UP as never);
+    router.push(ROUTES.SIGN_UP as never);
   };
 
   return (

@@ -7,7 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { getUserInfo, updateUser } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query'; // ← added useQueryClient
-import { useNavigation } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -15,7 +15,7 @@ export default function EditProfileScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
   const { t } = useLocalization();
-  const navigation = useNavigation();
+  
 
   const queryClient = useQueryClient(); // ← new
 
@@ -55,7 +55,7 @@ export default function EditProfileScreen() {
 
 
       Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
-        { text: t('ok'), onPress: () => navigation.goBack() },
+        { text: t('ok'), onPress: () => router.back() },
       ]);
     } catch (error) {
       console.error(error);
@@ -68,7 +68,7 @@ export default function EditProfileScreen() {
   return (
     <ThemedView variant="primary" style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background.primary }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={26} color={theme.gray[700]} />
         </TouchableOpacity>
 
