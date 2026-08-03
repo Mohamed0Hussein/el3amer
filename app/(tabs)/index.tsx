@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { tokens } from '@/constants/tokens';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
+import { getCategories } from '@/services/categories';
 import { getProducts } from '@/services/products';
 import { Category } from '@/types/Category';
 import { LocalizedProduct } from '@/types/Product';
@@ -39,16 +40,15 @@ export default function HomeScreen() {
     queryFn: () => getProducts(selectedCategory, searchQuery, true),
   });
 
-  const categories: Category[] = [
-    { id: 'all', name: t('cat_all'), icon: 'apps-outline' },
-    { id: 'fruits', name: t('cat_fruits'), icon: 'leaf-outline' },
-    { id: 'vegetables', name: t('cat_vegetables'), icon: 'nutrition-outline' },
-    { id: 'dairy', name: t('cat_dairy'), icon: 'water-outline' },
-    { id: 'meat', name: t('cat_meat'), icon: 'restaurant-outline' },
-    { id: 'bakery', name: t('cat_bakery'), icon: 'cafe-outline' },
-    { id: 'snacks', name: t('cat_snacks'), icon: 'fast-food-outline' },
-    { id: 'beverages', name: t('cat_beverages'), icon: 'beer-outline' },
-  ];
+  const { data: fetchedCategories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  });
+
+  const categories = useMemo(() => {
+    const allCategory: Category = { id: 'all', name: t('cat_all'), icon: 'apps-outline' };
+    return [allCategory, ...fetchedCategories];
+  }, [fetchedCategories, t]);
 
   const filteredProducts = useMemo(() => {
     let result = products.filter((product: LocalizedProduct) => {

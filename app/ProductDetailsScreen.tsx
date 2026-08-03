@@ -5,10 +5,9 @@ import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { LocalizedProduct } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -16,7 +15,6 @@ export default function ProductDetailsScreen() {
   const params = useLocalSearchParams();
   const product = typeof params.product === 'string' ? JSON.parse(params.product) : params.product;
   const { theme } = useTheme(); 
-  const productImageSize = { width: '100%', height: 350 };  
   const { t } = useLocalization();
   const { addToCart } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
@@ -70,7 +68,7 @@ export default function ProductDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Product Image Placeholder */}
         <ThemedView style={[styles.imageContainer, { backgroundColor: theme.gray[50] }]}>
-          <Image source={{ uri: imageUrl }} style={productImageSize} contentFit="cover" />
+          <Image source={{ uri: imageUrl }} style={{width: "100%", height: 250, borderRadius: 16}} contentFit="cover" />
         </ThemedView>
         <View style={styles.content}>
           <ThemedView variant="default" style={styles.infoRow}>
