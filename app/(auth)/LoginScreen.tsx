@@ -6,7 +6,7 @@ import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { forgotPassword, loginWithGoogle } from '@/services/auth';
+import { forgotPassword } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -68,13 +68,7 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      const user = await loginUserWithGoogle();
-      if (user) {
-        await loginWithGoogle(user.email,user.fullName);
-
-      }
-      else{
-      }
+      await loginUserWithGoogle();
     } catch (error: any) {
       console.error('Google login error:', error);
     }

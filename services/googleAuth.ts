@@ -13,6 +13,7 @@ export interface GoogleUserInfo {
   family_name: string;
   picture: string;
   locale: string;
+  accessToken: string;
 }
 
 const discovery = {
@@ -95,6 +96,7 @@ export const useGoogleAuth = () => {
       }
 
       const userInfo: GoogleUserInfo = await userInfoResponse.json();
+      userInfo.accessToken = tokenData.access_token;
 
       return userInfo;
     } catch (error) {
