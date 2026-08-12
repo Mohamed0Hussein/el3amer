@@ -7,8 +7,8 @@ export const login = async (email: string, password: string) => {
 };
 
 // GOOGLE LOGIN
-export const loginWithGoogle = async (email: string, fullName: string) => {
-    const res = await axios.post('/auth/google-login', { email, fullName });
+export const loginWithGoogle = async (accessToken: string) => {
+    const res = await axios.post('/auth/google-login', { accessToken });
     return res.data;
 };
 
@@ -25,12 +25,6 @@ export const signup = async (fullName: string, email: string, password: string) 
 // LOGOUT
 export const logout = async (token: string) => {
     const res = await axios.post('/auth/logout', { token });
-    return res.data;
-};
-
-// TEMP: GENERATE TOKEN
-export const getToken = async (email: string) => {
-    const res = await axios.post('/auth/generate-token', { email });
     return res.data;
 };
 
@@ -64,11 +58,6 @@ export const changePassword = async (currentPassword: string, newPassword: strin
     );
     return res.data;
 };
-
-export const checkPassword = async (password: string, token: string) => {
-    const res = await axios.post('/auth/check-password', { password,token }, { headers: { Authorization: `Bearer ${token}` } });
-    return res.data;
-}
 
 // VERIFY EMAIL
 export const verifyEmail = async (token: string) => {

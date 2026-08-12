@@ -4,10 +4,9 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { changePassword, checkPassword } from '@/services/auth';
+import { changePassword } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import { Alert, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -20,13 +19,6 @@ export default function ChangePasswordScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
   const { user } = useAuth();
-  
-
-  const { data: isValid } = useQuery({
-    queryKey: ['isPasswordCorrect', user?.id],
-    queryFn: () => checkPassword(currentPass, user?.token || ''),
-    enabled: !!currentPass,
-  });
 
   const handleUpdate = async () => {
     if (!currentPass || !newPass || !confirmPass) {
@@ -41,10 +33,6 @@ export default function ChangePasswordScreen() {
 
     if (newPass.length < 6) {
       Alert.alert(t('error'), t('passwordMin'));
-      return;
-    }
-    if (!isValid) {
-      Alert.alert(t('error'), t('passwordIncorrect'));
       return;
     }
 

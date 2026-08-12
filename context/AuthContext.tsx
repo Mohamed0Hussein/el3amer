@@ -104,8 +104,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!googleUser) throw new Error('Google login failed or was cancelled');
 
-      // Call backend google login
-      const backendUser = await loginWithGoogle(googleUser.email, googleUser.name);
+      // Call backend google login — backend verifies the token with Google itself
+      const backendUser = await loginWithGoogle(googleUser.accessToken);
 
       const finalUser: User = {
         id: backendUser.id,
