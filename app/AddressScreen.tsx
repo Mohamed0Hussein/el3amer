@@ -1,102 +1,97 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
-import { ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
+import { getUserInfo, updateUser } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, StatusBar, StyleSheet, View } from 'react-native';
 
-interface Address {
-  id: string;
-  type: 'home' | 'work' | 'other';
-  address: string;
-  details: string;
-  isDefault: boolean;
-}
-
+// The backend only stores a single free-text address per user (User.address) —
+// there's no address-book model, so this screen edits that one field directly
+// instead of pretending to manage a list of saved addresses.
 export default function AddressScreen() {
-  
   const { theme } = useTheme();
   const { t } = useLocalization();
-  
-  const [addresses, setAddresses] = useState<Address[]>([
-    { id: '1', type: 'home', address: '123 Main Street, New York, NY', details: 'Apt 4B, Building A', isDefault: true },
-    { id: '2', type: 'work', address: '456 Business Blvd, Brooklyn, NY', details: 'Floor 12, Office 1204', isDefault: false },
-  ]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const handleEditAddress = (address: Address) => {
-    router.push(ROUTES.EDIT_ADDRESS, { address });
+  const { data, isLoading } = useQuery({
+    queryKey: ['me', user?.id],
+    queryFn: () => getUserInfo(String(user!.id)),
+    enabled: !!user,
+  });
+
+  const [address, setAddress] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setAddress(data?.user?.address || '');
+  }, [data]);
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    setIsSaving(true);
+    try {
+      await updateUser(String(user.id), { address: address.trim() });
+      await queryClient.invalidateQueries({ queryKey: ['me', user.id] });
+      Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
+        { text: t('ok'), onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      console.error(error);
+      Alert.alert(t('updateFailed'), t('updateFailedMessage'));
+    } finally {
+      setIsSaving(false);
+    }
   };
-
-  const handleAddAddress = () => {
-    router.push(ROUTES.EDIT_ADDRESS);
-  };
-
-  const AddressCard = ({ item }: { item: Address }) => (
-    <ThemedView variant="card" style={[styles.addressCard, item.isDefault && { borderColor: theme.primary[500], borderWidth: 2 }]}>
-      <View style={styles.addressLeft}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.gray[100] }]}>
-          <Ionicons 
-            name={item.type === 'home' ? 'home-outline' : item.type === 'work' ? 'briefcase-outline' : 'location-outline'} 
-            size={24} 
-            color={theme.primary[500]} 
-          />
-        </View>
-        <View style={styles.addressInfo}>
-          <View style={styles.titleRow}>
-            <ThemedText weight="bold" size="lg">
-              {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-            </ThemedText>
-            {item.isDefault && (
-              <View style={[styles.defaultBadge, { backgroundColor: theme.primary[500] }]}>
-                <ThemedText variant="inverse" size="xs" weight="bold">DEFAULT</ThemedText>
-              </View>
-            )}
-          </View>
-          <ThemedText variant="secondary" size="sm">{item.address}</ThemedText>
-          <ThemedText variant="tertiary" size="xs">{item.details}</ThemedText>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.editBtn} onPress={() => handleEditAddress(item)}>
-        <Ionicons name="create-outline" size={20} color={theme.gray[400]} />
-      </TouchableOpacity>
-    </ThemedView>
-  );
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
-      
-      {/* Header */}
-      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
-        </TouchableOpacity>
-        <ThemedText variant="inverse" size="2xl" weight="bold">
-          {t('deliveryAddress')}
-        </ThemedText>
-      </ThemedView>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {addresses.map(addr => (
-          <AddressCard key={addr.id} item={addr} />
-        ))}
+      <ScreenHeader title={t('deliveryAddress')} />
 
-        <TouchableOpacity style={[styles.addButton, { borderStyle: 'dashed', borderColor: theme.gray[300], borderWidth: 2 }]} onPress={handleAddAddress}>
-          <Ionicons name="add" size={24} color={theme.primary[500]} />
-          <ThemedText style={{ color: theme.primary[500], marginLeft: 8 }} weight="bold">
-            Add New Address
+      <View style={styles.content}>
+        <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
+          <View style={[styles.iconCircle, { backgroundColor: theme.primary[50] }]}>
+            <Ionicons name="location-outline" size={22} color={theme.primary[500]} />
+          </View>
+          <ThemedText size="sm" weight="bold" style={{ marginTop: 12 }}>
+            {t('deliveryAddress')}
           </ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
+          <ThemedText variant="tertiary" size="xs" style={{ marginTop: 3, lineHeight: 17 }}>
+            Used to calculate delivery and shown to your rider at checkout.
+          </ThemedText>
 
-      <ThemedView variant="card" style={styles.footer}>
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary[500] }]}>
-          <ThemedText variant="inverse" weight="bold" size="lg">Save Changes</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
+          <ThemedTextInput
+            value={address}
+            editable={!isLoading}
+            onChangeText={setAddress}
+            multiline
+            placeholder="e.g. 12 El Galaa St, Mohandessin, Giza"
+            containerStyle={{ marginTop: 16, marginBottom: 0 }}
+            style={styles.input}
+          />
+        </View>
+
+        <ThemedButton
+          variant="primary"
+          size="lg"
+          onPress={handleSave}
+          loading={isSaving}
+          disabled={isLoading}
+          style={{ marginTop: 20 }}
+        >
+          {t('save')}
+        </ThemedButton>
+      </View>
     </ThemedView>
   );
 }
@@ -105,75 +100,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    padding: 4,
-  },
-  scrollContent: {
+  content: {
     padding: 20,
   },
-  addressCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
+  card: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 18,
   },
-  addressLeft: {
-    flexDirection: 'row',
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
-    flex: 1,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
   },
-  addressInfo: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  defaultBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  editBtn: {
-    padding: 8,
-  },
-  addButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginTop: 8,
-  },
-  footer: {
-    padding: 24,
-    paddingBottom: 40,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-  },
-  saveBtn: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
+  input: {
+    minHeight: 60,
+    textAlignVertical: 'top',
+    paddingTop: 14,
   },
 });
+
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';

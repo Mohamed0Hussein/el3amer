@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -6,11 +7,28 @@ import { CartContextProvider } from "@/context/CartContext";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { LocalizationProvider, useLocalization } from "@/context/LocalizationContext";
 import { useTheme } from "@/hooks/useTheme";
+import { setupGlobalErrorHandler } from "@/lib/globalErrorHandler";
 import { queryClient } from '@/lib/queryClient';
+import {
+  Almarai_300Light,
+  Almarai_400Regular,
+  Almarai_700Bold,
+  Almarai_800ExtraBold,
+} from '@expo-google-fonts/almarai';
+import {
+  Figtree_400Regular,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+  Figtree_800ExtraBold,
+} from '@expo-google-fonts/figtree';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router, useSegments } from 'expo-router';
+import { useFonts } from 'expo-font';
 import React, { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
+
+setupGlobalErrorHandler();
 
 function useProtectedRoute(isAuthenticated: boolean, isHydrating: boolean) {
   const segments = useSegments();
@@ -50,7 +68,6 @@ function RootNavigator() {
         <Stack.Screen name="ProductDetailsScreen" />
         <Stack.Screen name="OrderDetailsScreen" />
         <Stack.Screen name="AddressScreen" />
-        <Stack.Screen name="EditAddressScreen" />
         <Stack.Screen name="ChangePasswordScreen" />
         <Stack.Screen name="AboutScreen" />
       </Stack>
@@ -59,12 +76,30 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
+    Figtree_800ExtraBold,
+    Almarai_300Light,
+    Almarai_400Regular,
+    Almarai_700Bold,
+    Almarai_800ExtraBold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <AppProviders>
-      <RtlWrapper>
-        <RootNavigator />
-      </RtlWrapper>
-    </AppProviders>
+    <ErrorBoundary>
+      <AppProviders>
+        <RtlWrapper>
+          <RootNavigator />
+        </RtlWrapper>
+      </AppProviders>
+    </ErrorBoundary>
   );
 }
 

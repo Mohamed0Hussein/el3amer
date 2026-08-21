@@ -1,15 +1,17 @@
 import { EmptyState } from '@/components/EmptyState';
+import { Logo } from '@/components/Logo';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductListSkeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { tokens } from '@/constants/tokens';
+import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { getCategories } from '@/services/categories';
 import { getProducts } from '@/services/products';
 import { Category } from '@/types/Category';
-import { LocalizedProduct } from '@/types/Product';
+import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -26,13 +28,25 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Cycled tint palette for category chips, matching the el3amer brand sheet.
+const CATEGORY_TINTS = [
+  { bg: '#E4F2F1', ink: '#0F6F6C' },
+  { bg: '#FFFBEB', ink: '#A16207' },
+  { bg: '#FDF3E7', ink: '#B45309' },
+  { bg: '#FEF2F2', ink: '#B91C1C' },
+  { bg: '#EFF6FF', ink: '#2563EB' },
+  { bg: '#F0FDF4', ink: '#15803D' },
+  { bg: '#FAF6F2', ink: '#7C6F60' },
+];
+
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'name' | 'price_low' | 'price_high'>('name');
 
   const { theme } = useTheme();
-  const { t } = useLocalization();
+  const { t, isRtl } = useLocalization();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
   const { data: products = [], isLoading, refetch, isRefetching } = useQuery({
@@ -50,51 +64,68 @@ export default function HomeScreen() {
     return [allCategory, ...fetchedCategories];
   }, [fetchedCategories, t]);
 
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t('greetingMorning');
+    if (hour < 18) return t('greetingAfternoon');
+    return t('greetingEvening');
+  }, [t]);
+
+  const firstName = user?.fullName?.split(' ')[0];
+
   const filteredProducts = useMemo(() => {
-    let result = products.filter((product: LocalizedProduct) => {
+    let result = products.filter((product: Product) => {
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      const localizedName = t(product.nameKey as any).toLowerCase();
-      const matchesSearch = localizedName.includes(searchQuery.toLowerCase());
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
 
     return [...result].sort((a, b) => {
       if (sortBy === 'name') {
-        const nameA = t(a.nameKey as any).toLowerCase();
-        const nameB = t(b.nameKey as any).toLowerCase();
-        return nameA.localeCompare(nameB);
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
       }
       if (sortBy === 'price_low') return a.price - b.price;
       if (sortBy === 'price_high') return b.price - a.price;
       return 0;
     });
-  }, [products, selectedCategory, searchQuery, sortBy, t]);
+  }, [products, selectedCategory, searchQuery, sortBy]);
 
   const renderProduct = useCallback(
-    ({ item }: { item: LocalizedProduct }) => <ProductCard product={item} />,
+    ({ item }: { item: Product }) => <ProductCard product={item} />,
     [],
   );
 
-  const keyExtractor = useCallback((item: LocalizedProduct) => String(item.id), []);
+  const keyExtractor = useCallback((item: Product) => String(item.id), []);
 
   const onRefresh = () => {
     refetch();
   };
 
-  return (
-    <ThemedView variant="primary" style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={theme.primary[500]}
-      />
-      
-      {/* Header */}
-      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500], paddingTop: insets.top + tokens.space.md }]}>
-        <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
-          {t('appTitle')}
+  const listHeader = (
+    <>
+      {/* Brand header */}
+      <View style={[styles.header, { paddingTop: insets.top + tokens.space.md }]}>
+        <View style={styles.brandRow}>
+          <Logo size={44} />
+          <View style={styles.brandText}>
+            <ThemedText variant="primary" size="xl" weight="extrabold">
+              {t('appTitle')}
+            </ThemedText>
+            <ThemedText variant="tertiary" size="xs" style={styles.tagline}>
+              {t('appTagline')}
+            </ThemedText>
+          </View>
+        </View>
+
+        <ThemedText variant="primary" size="xl" weight="extrabold" style={styles.greeting}>
+          {greeting}{firstName ? `${isRtl ? '،' : ','} ${firstName}` : ''}
         </ThemedText>
-        <ThemedView style={[styles.searchContainer, { backgroundColor: theme.background.secondary }]}>
-          <Ionicons name="search-outline" size={20} color={theme.gray[400]} style={styles.searchIcon} />
+        <ThemedText variant="tertiary" size="sm" style={styles.subGreeting}>
+          {t('homeSubtitle')}
+        </ThemedText>
+
+        <View style={[styles.searchContainer, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}>
+          <Ionicons name="search-outline" size={19} color={theme.gray[400]} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.text.primary }]}
             placeholder={t('searchPlaceholder')}
@@ -107,77 +138,90 @@ export default function HomeScreen() {
               <Ionicons name="close-circle" size={20} color={theme.gray[400]} />
             </TouchableOpacity>
           )}
-        </ThemedView>
-      </ThemedView>
+        </View>
+      </View>
 
       {/* Categories */}
-      <ThemedView style={styles.categoriesWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {categories.map(cat => (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContent}
+      >
+        {categories.map((cat, index) => {
+          const active = selectedCategory === cat.id;
+          const tint = CATEGORY_TINTS[index % CATEGORY_TINTS.length];
+          return (
             <TouchableOpacity
               key={cat.id}
-              style={[
-                styles.categoryButton,
-                { backgroundColor: theme.gray[100] },
-                selectedCategory === cat.id && { backgroundColor: theme.primary[500] },
-              ]}
+              style={styles.categoryItem}
               onPress={() => setSelectedCategory(cat.id)}
             >
-              <Ionicons
-                name={cat.icon as any}
-                size={20}
-                color={selectedCategory === cat.id ? theme.text.inverse : theme.gray[700]}
-              />
+              <View
+                style={[
+                  styles.categoryCircle,
+                  { backgroundColor: active ? theme.primary[500] : tint.bg },
+                ]}
+              >
+                <Ionicons
+                  name={cat.icon as any}
+                  size={22}
+                  color={active ? '#fff' : tint.ink}
+                />
+              </View>
               <ThemedText
-                variant={selectedCategory === cat.id ? 'inverse' : 'secondary'}
-                size="sm"
-                weight="semibold"
-                style={styles.categoryText}
+                variant={active ? 'primary' : 'tertiary'}
+                size="xs"
+                weight={active ? 'bold' : 'medium'}
+                style={styles.categoryLabel}
+                numberOfLines={1}
               >
                 {cat.name}
               </ThemedText>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </ThemedView>
-      
-      {/* Search Result Count & Sort UI */}
-      <ThemedView variant="secondary" style={styles.sortContainer}>
+          );
+        })}
+      </ScrollView>
+
+      {/* Result count & sort */}
+      <View style={styles.sortContainer}>
         <ThemedText variant="tertiary" size="sm">
-          {filteredProducts.length} {t('cat_all')}
+          {filteredProducts.length} {t('itemsCount')}
         </ThemedText>
-        <View style={styles.sortButtons}>
-          <TouchableOpacity 
-            onPress={() => setSortBy('name')} 
-            style={[styles.sortBtn, sortBy === 'name' && { backgroundColor: theme.primary[500] + '20' }]}
+        <View style={[styles.sortButtons, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
+          <TouchableOpacity
+            onPress={() => setSortBy('name')}
+            style={[styles.sortBtn, sortBy === 'name' && { backgroundColor: theme.primary[500] }]}
           >
-            <ThemedText variant={sortBy === 'name' ? 'success' : 'tertiary'} size="xs" weight="bold">A-Z</ThemedText>
+            <ThemedText variant={sortBy === 'name' ? 'inverse' : 'tertiary'} size="xs" weight="bold">A-Z</ThemedText>
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setSortBy('price_low')} 
-            style={[styles.sortBtn, sortBy === 'price_low' && { backgroundColor: theme.primary[500] + '20' }]}
+          <TouchableOpacity
+            onPress={() => setSortBy('price_low')}
+            style={[styles.sortBtn, sortBy === 'price_low' && { backgroundColor: theme.primary[500] }]}
           >
-            <Ionicons name="trending-up-outline" size={14} color={sortBy === 'price_low' ? theme.primary[500] : theme.gray[400]} />
-            <ThemedText variant={sortBy === 'price_low' ? 'success' : 'tertiary'} size="xs" weight="bold">Low</ThemedText>
+            <Ionicons name="trending-up-outline" size={13} color={sortBy === 'price_low' ? '#fff' : theme.gray[400]} />
+            <ThemedText variant={sortBy === 'price_low' ? 'inverse' : 'tertiary'} size="xs" weight="bold">Low</ThemedText>
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setSortBy('price_high')} 
-            style={[styles.sortBtn, sortBy === 'price_high' && { backgroundColor: theme.primary[500] + '20' }]}
+          <TouchableOpacity
+            onPress={() => setSortBy('price_high')}
+            style={[styles.sortBtn, sortBy === 'price_high' && { backgroundColor: theme.primary[500] }]}
           >
-            <Ionicons name="trending-down-outline" size={14} color={sortBy === 'price_high' ? theme.primary[500] : theme.gray[400]} />
-            <ThemedText variant={sortBy === 'price_high' ? 'success' : 'tertiary'} size="xs" weight="bold">High</ThemedText>
+            <Ionicons name="trending-down-outline" size={13} color={sortBy === 'price_high' ? '#fff' : theme.gray[400]} />
+            <ThemedText variant={sortBy === 'price_high' ? 'inverse' : 'tertiary'} size="xs" weight="bold">High</ThemedText>
           </TouchableOpacity>
         </View>
-      </ThemedView>
+      </View>
+    </>
+  );
 
-      {/* Products Grid */}
+  return (
+    <ThemedView variant="primary" style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
+
       {isLoading && !isRefetching ? (
-        <ProductListSkeleton />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {listHeader}
+          <ProductListSkeleton />
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredProducts}
@@ -191,6 +235,7 @@ export default function HomeScreen() {
           windowSize={7}
           maxToRenderPerBatch={10}
           updateCellsBatchingPeriod={50}
+          ListHeaderComponent={listHeader}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -223,69 +268,86 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: tokens.space.xl,
-    paddingBottom: tokens.space.xl,
+    paddingBottom: tokens.space.md,
   },
-  headerTitle: {
-    marginBottom: 16,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 18,
+  },
+  brandText: {
+    flex: 1,
+  },
+  tagline: {
+    marginTop: 2,
+  },
+  greeting: {
+    marginBottom: 3,
+  },
+  subGreeting: {
+    marginBottom: 14,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    height: 50,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     height: '100%',
-    fontSize: 16,
-  },
-  categoriesWrapper: {
-    height: 70,
-  },
-  categoriesContainer: {
-    flex: 1,
+    fontSize: 14,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    alignItems: 'center',
-    gap: 12,
+    gap: 16,
+    paddingVertical: 6,
   },
-  categoryButton: {
-    flexDirection: 'row',
+  categoryItem: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    height: 44,
+    gap: 7,
+    width: 68,
   },
-  categoryText: {
-    marginLeft: 6,
+  categoryCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryLabel: {
+    textAlign: 'center',
   },
   sortContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   sortButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    padding: 3,
   },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    gap: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
   productsContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingBottom: 100,
     flexGrow: 1,
   },
@@ -293,3 +355,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 });
+
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';

@@ -1,3 +1,4 @@
+import { Logo } from '@/components/Logo';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
@@ -110,15 +111,23 @@ export default function LoginScreen() {
         >
           {/* Header Section */}
           <View style={styles.header}>
-            <View style={[styles.logoContainer, { backgroundColor: theme.primary[100] }]}>
-              <Ionicons name="storefront" size={48} color={theme.primary[500]} />
-            </View>
-            <ThemedText variant="primary" size="3xl" weight="bold" style={styles.title}>
+            <Logo size={56} />
+            <ThemedText variant="primary" size="2xl" weight="extrabold" style={styles.title}>
               {t('welcomeBack')}
             </ThemedText>
             <ThemedText variant="tertiary" size="base" style={styles.subtitle}>
               {t('signInToAccount')}
             </ThemedText>
+          </View>
+
+          {/* Login / Signup tab switcher */}
+          <View style={[styles.tabSwitcher, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100] }]}>
+            <View style={[styles.tabPill, { backgroundColor: theme.primary[500] }]}>
+              <ThemedText variant="inverse" size="sm" weight="extrabold">{t('signIn')}</ThemedText>
+            </View>
+            <TouchableOpacity style={styles.tabPill} onPress={handleSignUp} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <ThemedText variant="tertiary" size="sm" weight="extrabold">{t('signUp')}</ThemedText>
+            </TouchableOpacity>
           </View>
 
           {/* Form Section */}
@@ -251,23 +260,31 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
+    marginTop: 20,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     textAlign: 'center',
     marginTop: 4,
+  },
+  tabSwitcher: {
+    flexDirection: 'row',
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    padding: 5,
+    marginBottom: 24,
+  },
+  tabPill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 999,
   },
   formContainer: {
     width: '100%',
@@ -292,7 +309,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 999,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -320,7 +337,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 999,
     borderWidth: 1.5,
     gap: 12,
     elevation: 1,
@@ -345,3 +362,4 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
 });
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';

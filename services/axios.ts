@@ -10,6 +10,7 @@ import { Alert } from 'react-native';
  * Base URL from `EXPO_PUBLIC_API_URL` or `expo.extra.apiUrl` (see `config/env.ts`).
  * On device, use your LAN IP instead of localhost.
  */
+console.log(env.apiOrigin)
 const axiosInstance = axios.create({
   baseURL: `${env.apiOrigin}/api/v1`,
   timeout: 10000, // 10 seconds timeout

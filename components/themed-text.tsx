@@ -1,3 +1,4 @@
+import { useFontFamily } from '@/hooks/useFontFamily';
 import { useTheme } from '@/hooks/useTheme';
 import React from 'react';
 import { Text, TextProps } from 'react-native';
@@ -5,17 +6,18 @@ import { Text, TextProps } from 'react-native';
 interface ThemedTextProps extends TextProps {
   variant?: 'primary' | 'secondary' | 'tertiary' | 'inverse' | 'success' | 'error';
   size?: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl';
-  weight?: 'normal' | 'medium' | 'semibold' | 'bold';
+  weight?: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
 }
 
-export const ThemedText: React.FC<ThemedTextProps> = ({ 
-  style, 
+export const ThemedText: React.FC<ThemedTextProps> = ({
+  style,
   variant = 'primary',
   size = 'base',
   weight = 'normal',
-  ...props 
+  ...props
 }) => {
   const { theme } = useTheme();
+  const fontFamily = useFontFamily();
 
   const getTextColor = () => {
     switch (variant) {
@@ -55,6 +57,7 @@ export const ThemedText: React.FC<ThemedTextProps> = ({
       case 'medium': return '500';
       case 'semibold': return '600';
       case 'bold': return '700';
+      case 'extrabold': return '800';
       default: return '400';
     }
   };
@@ -66,6 +69,7 @@ export const ThemedText: React.FC<ThemedTextProps> = ({
           color: getTextColor(),
           fontSize: getFontSize(),
           fontWeight: getFontWeight(),
+          fontFamily: fontFamily(weight),
         },
         style,
       ]}

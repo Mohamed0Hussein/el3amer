@@ -1,27 +1,7 @@
-import { translations } from '@/localization/translations';
-
-type TranslationKeys = keyof typeof translations['en'];
-
+// Product as returned by the backend (`GET /items`, `GET /items/:id`).
+// Names/units are plain strings set by whoever created the item — not
+// translation keys — so the client renders them as-is.
 export interface Product {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  unit: string;
-  image: string;
-  stock: number;
-}
-
-// Product with localization keys for multi-language support
-export interface LocalizedProduct extends Omit<Product, 'name' | 'unit'> {
-  name: string;
-  nameKey: TranslationKeys;
-  unit: string;
-  unitKey: TranslationKeys;
-}
-
-// Product as returned from API
-export interface ApiProduct {
   id: number;
   name: string;
   description?: string;
@@ -30,7 +10,6 @@ export interface ApiProduct {
   unit: string;
   image?: string;
   stock: number;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  isActive?: boolean;
+  category_icon?: string;
 }

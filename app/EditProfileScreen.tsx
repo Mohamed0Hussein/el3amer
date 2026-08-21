@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
@@ -5,8 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { getUserInfo, updateUser } from '@/services/user';
-import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query'; // ← added useQueryClient
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
@@ -67,13 +67,8 @@ export default function EditProfileScreen() {
 
   return (
     <ThemedView variant="primary" style={{ flex: 1 }}>
+      <ScreenHeader title="Edit Profile" />
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background.primary }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={26} color={theme.gray[700]} />
-        </TouchableOpacity>
-
-        <ThemedText size="2xl" weight="bold" style={styles.title}>Edit Profile</ThemedText>
-
         <ThemedView variant="card" style={[styles.card, { backgroundColor: theme.background.card }]}>
           <ThemedText size="lg" weight="semibold" style={styles.label}>Full Name</ThemedText>
           {isLoading ? <ActivityIndicator color={theme.primary[500]} /> : (
@@ -145,10 +140,9 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 20 },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', borderRadius: 10 },
-  title: { marginBottom: 10 },
   card: { borderRadius: 16, padding: 16, gap: 16 },
   label: { marginBottom: 4 },
   input: { padding: 14, borderRadius: 12, fontSize: 16 },
   saveButton: { padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 10 },
 });
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';
