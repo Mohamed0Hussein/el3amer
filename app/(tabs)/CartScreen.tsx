@@ -1,54 +1,75 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { env } from '@/config/env';
+import { formatUnit } from '@/constants/format';
 import { ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
 import { useLocalization } from '@/context/LocalizationContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useTheme } from '@/hooks/useTheme';
 import { createOrder } from '@/services/orders';
+import { getUserInfo } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 
-import { ActivityIndicator, Alert, FlatList, StatusBar, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Cart = () => {
-  
+
   const {
     cart,
     updateCartQuantity,
     removeFromCart,
     clearCart,
     cartTotal,
-    cartItemCount,
   } = useCartContext();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { theme } = useTheme();
   const { t } = useLocalization();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const formatPrice = useCurrency();
+
+  // The backend requires a non-null shippingAddress on every order — read it
+  // fresh (AuthContext's cached user can be stale after an EditProfileScreen edit).
+  const { data: me } = useQuery({
+    queryKey: ['me', user?.id],
+    queryFn: () => getUserInfo(String(user!.id)),
+    enabled: !!user,
+  });
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return;
-    
+    if (cart.length === 0 || !user) return;
+
+    const shippingAddress: string | undefined = me?.user?.address;
+    if (!shippingAddress) {
+      Alert.alert(
+        t('deliveryAddress'),
+        t('addAddressPrompt'),
+        [
+          { text: t('cancel'), style: 'cancel' },
+          { text: t('editProfile'), onPress: () => router.push('/EditProfileScreen' as never) },
+        ],
+      );
+      return;
+    }
+
     setIsCheckingOut(true);
     try {
-      await createOrder({
-        items: cart,
-        total: cartTotal,
+      const order = await createOrder({
+        userId: Number(user.id),
+        items: cart.map((item) => ({ itemId: Number(item.id), quantity: item.quantity })),
+        shippingAddress,
       });
-      
-      Alert.alert(
-        t('checkoutSuccessTitle'),
-        t('checkoutSuccessMessage'),
-        [
-          {
-            text: t('ok'),
-            onPress: () => {
-              clearCart();
-              router.push(ROUTES.HOME as never);
-            },
-          },
-        ]
-      );
+
+      clearCart();
+      router.push({ pathname: ROUTES.ORDER_DETAILS as any, params: { order: JSON.stringify(order) } });
     } catch (error) {
       console.error('Checkout error:', error);
       Alert.alert(
@@ -63,32 +84,37 @@ const Cart = () => {
   return (
     <ThemedView variant="primary" style={styles.container}>
       {/* Header */}
-      <ThemedView variant="default" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        {/* <TouchableOpacity onPress={() => setCurrentScreen('home')} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.text.inverse} />
-        </TouchableOpacity> */}
-        <ThemedText variant="inverse" size="2xl" weight="bold" style={styles.headerTitle}>
+      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+        <ThemedText variant="primary" size="xl" weight="extrabold">
           {t('shoppingCart')}
         </ThemedText>
-      </ThemedView>
+        {cart.length > 0 && (
+          <ThemedText variant="tertiary" size="xs" style={styles.headerCount}>
+            {cart.length} {t('itemsCount')}
+          </ThemedText>
+        )}
+      </View>
 
       {/* Empty cart */}
       {cart.length === 0 ? (
-        <ThemedView variant="default" style={styles.emptyCart}>
-          <Ionicons name="cart-outline" size={80} color={theme.gray[300]} />
-          <ThemedText variant="primary" size="xl" weight="semibold" style={styles.emptyCartTitle}>
+        <View style={styles.emptyCart}>
+          <View style={[styles.emptyIconCircle, { backgroundColor: theme.background.card }]}>
+            <Ionicons name="cart-outline" size={44} color={theme.gray[300]} />
+          </View>
+          <ThemedText variant="primary" size="lg" weight="extrabold" style={styles.emptyCartTitle}>
             {t('yourCartIsEmpty')}
           </ThemedText>
-          <ThemedText variant="tertiary" size="base" style={styles.emptyCartText}>
+          <ThemedText variant="tertiary" size="sm" style={styles.emptyCartText}>
             {t('addProductsToGetStarted')}
           </ThemedText>
-          <TouchableOpacity
-            style={[styles.startShoppingButton, { backgroundColor: theme.primary[500] }]}>
-            <ThemedButton variant="primary" size='sm' style={styles.startShoppingText} onPress={() => router.push(ROUTES.HOME as never)}>
-              {t('startShopping')}
-            </ThemedButton>
-          </TouchableOpacity>
-        </ThemedView>
+          <ThemedButton
+            variant="primary"
+            size="md"
+            onPress={() => router.push(ROUTES.HOME as never)}
+          >
+            {t('startShopping')}
+          </ThemedButton>
+        </View>
       ) : (
         <>
           {/* Cart items */}
@@ -98,61 +124,68 @@ const Cart = () => {
             contentContainerStyle={styles.cartList}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
-              <ThemedView variant="card" style={styles.cartItem}>
-                <ThemedText style={styles.cartItemEmoji}>{item.emoji}</ThemedText>
-                <ThemedView variant="default" style={styles.cartItemDetails}>
-                  <ThemedText variant="primary" size="base" weight="semibold" style={styles.cartItemName}>
-                    {item.name}
-                  </ThemedText>
-                  <ThemedText variant="success" size="sm" weight="semibold" style={styles.cartItemPrice}>
-                    ${item.price} / {item.unit}
-                  </ThemedText>
+              <View style={[styles.cartItem, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
+                <View style={[styles.itemThumb, { backgroundColor: theme.gray[50] }]}>
+                  <Image
+                    source={{
+                      uri: item.image?.startsWith('http')
+                        ? item.image
+                        : `${env.apiOrigin}${item.image?.startsWith('/') ? '' : '/'}${item.image}`,
+                    }}
+                    style={styles.itemThumbImage}
+                    contentFit="contain"
+                  />
+                </View>
+                <View style={styles.cartItemDetails}>
+                  <View style={styles.cartItemTopRow}>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText variant="primary" size="sm" weight="bold" numberOfLines={1}>
+                        {item.name}
+                      </ThemedText>
+                      <ThemedText variant="tertiary" size="xs" style={styles.cartItemUnit}>
+                        {formatUnit(item.unit)} · {formatPrice(item.price)}
+                      </ThemedText>
+                    </View>
+                    <TouchableOpacity onPress={() => removeFromCart(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                      <ThemedText variant="tertiary" size="lg">×</ThemedText>
+                    </TouchableOpacity>
+                  </View>
 
-                  <ThemedView variant="default" style={styles.cartItemActions}>
-                    <TouchableOpacity
-                      style={[styles.quantityButton, { backgroundColor: theme.gray[100] }]}
-                      onPress={() => updateCartQuantity(item.id, -1)}
-                    >
-                      <Ionicons name="remove" size={16} color={theme.gray[700]} />
-                    </TouchableOpacity>
-                    <ThemedText variant="primary" size="base" weight="semibold" style={styles.quantityText}>
-                      {item.quantity}
+                  <View style={styles.cartItemBottomRow}>
+                    <View style={[styles.stepper, { backgroundColor: theme.primary[500] }]}>
+                      <TouchableOpacity
+                        style={styles.stepperBtn}
+                        onPress={() => updateCartQuantity(item.id, -1)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <ThemedText variant="inverse" size="base" weight="extrabold">−</ThemedText>
+                      </TouchableOpacity>
+                      <ThemedText variant="inverse" size="sm" weight="bold" style={styles.stepperValue}>
+                        {item.quantity}
+                      </ThemedText>
+                      <TouchableOpacity
+                        style={styles.stepperBtn}
+                        onPress={() => updateCartQuantity(item.id, 1)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <ThemedText variant="inverse" size="base" weight="extrabold">+</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                    <ThemedText variant="primary" size="base" weight="extrabold">
+                      {formatPrice(item.price * item.quantity)}
                     </ThemedText>
-                    <TouchableOpacity
-                      style={[styles.quantityButton, { backgroundColor: theme.gray[100] }]}
-                      onPress={() => updateCartQuantity(item.id, 1)}
-                    >
-                      <Ionicons name="add" size={16} color={theme.gray[700]} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => removeFromCart(item.id)}
-                    >
-                      <Ionicons name="trash-outline" size={18} color={theme.status.error} />
-                    </TouchableOpacity>
-                  </ThemedView>
-                </ThemedView>
-                <ThemedText variant="primary" size="base" weight="bold" style={styles.cartItemTotal}>
-                  ${(item.price * item.quantity).toFixed(2)}
-                </ThemedText>
-              </ThemedView>
+                  </View>
+                </View>
+              </View>
             )}
           />
 
           {/* Checkout */}
-          <ThemedView variant="secondary" style={styles.checkoutContainer}>
-            <ThemedView variant="default" style={styles.totalContainer}>
-              <ThemedText variant="secondary" size="lg" weight="semibold" style={styles.totalLabel}>
-                {t('total')}:
-              </ThemedText>
-              <ThemedText variant="success" size="2xl" weight="bold" style={styles.totalAmount}>
-                ${cartTotal.toFixed(2)}
-              </ThemedText>
-            </ThemedView>
-            <TouchableOpacity 
+          <View style={[styles.checkoutContainer, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100], paddingBottom: insets.bottom + 16 }]}>
+            <TouchableOpacity
               style={[
-                styles.checkoutButton, 
-                { backgroundColor: theme.primary[500] },
+                styles.checkoutButton,
+                { backgroundColor: theme.primary[500], shadowColor: theme.primary[700] },
                 isCheckingOut && { opacity: 0.7 }
               ]}
               onPress={handleCheckout}
@@ -161,12 +194,17 @@ const Cart = () => {
               {isCheckingOut ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <ThemedText variant="inverse" size="lg" weight="bold" style={styles.checkoutButtonText}>
-                  {t('proceedToCheckout')}
-                </ThemedText>
+                <>
+                  <ThemedText variant="inverse" size="base" weight="extrabold">
+                    {t('proceedToCheckout')}
+                  </ThemedText>
+                  <ThemedText variant="inverse" size="base" weight="bold" style={styles.checkoutTotal}>
+                    · {formatPrice(cartTotal)}
+                  </ThemedText>
+                </>
               )}
             </TouchableOpacity>
-          </ThemedView>
+          </View>
         </>
       )}
     </ThemedView>
@@ -180,13 +218,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 20,
-    paddingTop: StatusBar.currentHeight || 0,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
   },
-  headerTitle: {
-  },
-  backButton: {
-    marginBottom: 12,
+  headerCount: {
+    marginTop: 3,
   },
   emptyCart: {
     flex: 1,
@@ -194,70 +230,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 40,
   },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
   emptyCartTitle: {
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptyCartText: {
     textAlign: 'center',
-    marginBottom: 24,
-  },
-  startShoppingButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  startShoppingText: {
+    marginBottom: 22,
   },
   cartList: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingHorizontal: 20,
+    paddingBottom: 120,
+    gap: 10,
   },
   cartItem: {
     flexDirection: 'row',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 12,
   },
-  cartItemEmoji: {
-    fontSize: 40,
-    marginRight: 12,
+  itemThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  itemThumbImage: {
+    width: '100%',
+    height: '100%',
   },
   cartItemDetails: {
     flex: 1,
   },
-  cartItemName: {
-    marginBottom: 4,
+  cartItemTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
   },
-  cartItemPrice: {
-    marginBottom: 8,
+  cartItemUnit: {
+    marginTop: 2,
   },
-  cartItemActions: {
+  cartItemBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
-  quantityButton: {
-    padding: 8,
-    borderRadius: 8,
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    padding: 3,
+    gap: 2,
   },
-  quantityText: {
-    marginHorizontal: 16,
-    minWidth: 24,
+  stepperBtn: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperValue: {
+    minWidth: 14,
     textAlign: 'center',
-  },
-  deleteButton: {
-    marginLeft: 'auto',
-    padding: 8,
-  },
-  cartItemTotal: {
   },
   checkoutContainer: {
     position: 'absolute',
@@ -265,31 +310,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderTopWidth: 1,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  totalLabel: {
-  },
-  totalAmount: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
   checkoutButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 999,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  checkoutButtonText: {
+  checkoutTotal: {
+    marginLeft: 6,
   },
 });
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';

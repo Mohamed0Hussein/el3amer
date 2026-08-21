@@ -1,34 +1,27 @@
+import { Logo } from '@/components/Logo';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 
 export default function AboutScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
-  
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
-      
-      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
-        </TouchableOpacity>
-        <ThemedText variant="inverse" size="2xl" weight="bold">
-          {t('about')}
-        </ThemedText>
-      </ThemedView>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
+
+      <ScreenHeader title={t('about')} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.logoContainer}>
-          <Ionicons name="basket-outline" size={100} color={theme.primary[500]} />
-          <ThemedText variant="primary" size="3xl" weight="bold">
+          <Logo size={72} />
+          <ThemedText variant="primary" size="2xl" weight="extrabold" style={{ marginTop: 16 }}>
             {t('appTitle')}
           </ThemedText>
           <ThemedText variant="tertiary" size="base">
@@ -75,16 +68,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    padding: 4,
-  },
   content: {
     padding: 24,
   },
@@ -115,3 +98,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
 });
+
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';

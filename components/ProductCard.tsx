@@ -3,8 +3,10 @@ import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
+import { formatUnit } from '@/constants/format';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { AuthenticatedStackParamList } from '@/types/navigation';
-import { LocalizedProduct } from '@/types/Product';
+import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,11 +22,12 @@ const { width } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<AuthenticatedStackParamList>;
 
-export const ProductCard = memo(function ProductCard({ product }: { product: LocalizedProduct }) {
+export const ProductCard = memo(function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
   const { theme, tokens } = useTheme();
   const { t } = useLocalization();
+  const formatPrice = useCurrency();
 
   const isFav = favorites.includes(product.id);
 
@@ -81,15 +84,15 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Loc
             style={styles.productName}
             numberOfLines={1}
           >
-            {t(product.name as any)}
+            {product.name}
           </ThemedText>
           
           <ThemedView style={styles.priceContainer}>
-            <ThemedText variant="success" size="lg" weight="bold">
-              ${product.price}
+            <ThemedText style={{ color: theme.primary[500] }} size="lg" weight="extrabold">
+              {formatPrice(product.price)}
             </ThemedText>
             <ThemedText variant="tertiary" size="sm" style={styles.productUnit}>
-              /{t(product.unit as any)}
+              /{formatUnit(product.unit)}
             </ThemedText>
           </ThemedView>
           

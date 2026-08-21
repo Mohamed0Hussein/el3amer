@@ -1,3 +1,4 @@
+import { useFontFamily } from '@/hooks/useFontFamily';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -29,6 +30,7 @@ export const ThemedTextInput: React.FC<ThemedTextInputProps> = ({
   ...props 
 }) => {
   const { theme } = useTheme();
+  const fontFamily = useFontFamily();
   const [isFocused, setIsFocused] = useState(false);
 
   const handleFocus = (e: any) => {
@@ -71,6 +73,7 @@ export const ThemedTextInput: React.FC<ThemedTextInputProps> = ({
             styles.input,
             {
               color: theme.text.primary,
+              fontFamily: fontFamily('normal'),
             },
             rightIcon ? styles.inputWithRightIcon : null,
             style,
@@ -108,7 +111,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 4, // Material UI Outlined Text Field border radius
+    borderRadius: 14,
     paddingHorizontal: 16,
     height: 56,
   },

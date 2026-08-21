@@ -1,22 +1,36 @@
-import { CartItem } from './CardItem';
+// Matches the backend's Order enum (models/Order.js) — no 'preparing' stage.
+export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
+export interface OrderLineItem {
+  id: number;
+  name: string;
+  description?: string;
+  category: string;
+  unit: string;
+  image?: string;
+  stock: number;
+  quantity: number;
+  price: number;
+}
 
 export interface Order {
-  id: string;
-  userId: string;
-  items: CartItem[];
-  total: number;
+  id: number;
+  userId: number;
+  items: OrderLineItem[];
+  totalAmount: number;
   status: OrderStatus;
   shippingAddress?: string;
-  paymentMethod?: string;
+  paymentMethod?: 'cash' | 'card';
+  paymentStatus?: 'pending' | 'paid' | 'failed';
+  trackingNumber?: string;
+  deliveryDate?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateOrderPayload {
-  items: CartItem[];
-  total: number;
+  userId: number;
+  items: { itemId: number; quantity: number }[];
   shippingAddress?: string;
-  paymentMethod?: string;
+  paymentMethod?: 'cash' | 'card';
 }

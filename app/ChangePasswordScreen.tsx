@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
@@ -5,10 +6,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { changePassword } from '@/services/auth';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, StatusBar, StyleSheet, View } from 'react-native';
 
 export default function ChangePasswordScreen() {
   const [currentPass, setCurrentPass] = useState('');
@@ -51,17 +51,9 @@ export default function ChangePasswordScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.primary[500]} />
-      
-      {/* Header */}
-      <ThemedView variant="primary" style={[styles.header, { backgroundColor: theme.primary[500] }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={theme.text.inverse} />
-        </TouchableOpacity>
-        <ThemedText variant="inverse" size="2xl" weight="bold">
-          {t('changePassword')}
-        </ThemedText>
-      </ThemedView>
+      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
+
+      <ScreenHeader title={t('changePassword')} />
 
       <View style={styles.content}>
         <ThemedTextInput
@@ -109,16 +101,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    padding: 4,
-  },
   content: {
     padding: 24,
   },
@@ -127,6 +109,5 @@ const styles = StyleSheet.create({
   },
 });
 
-// Import ThemedText locally because it might not be exported from all themes
-import { ThemedText } from '@/components/themed-text';
 
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';

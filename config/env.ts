@@ -19,6 +19,6 @@ const fromExtra = typeof extra.apiUrl === 'string' ? extra.apiUrl.trim() : '';
  */
 export const env = {
   apiOrigin: stripTrailingSlash(
-    fromEnv || fromExtra || 'https://primacy-backend.vercel.app',
+    fromEnv || fromExtra || 'https://el3amer-backend.vercel.app',
   ),
 } as const;

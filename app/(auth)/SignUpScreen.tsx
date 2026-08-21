@@ -1,3 +1,4 @@
+import { Logo } from '@/components/Logo';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
@@ -30,8 +31,8 @@ export default function SignUpScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const { theme } = useTheme();
-    const { signupUser, isLoading: isAuthLoading } = useAuth()
-  const { t } = useLocalization();
+  const { signupUser, isLoading: isAuthLoading } = useAuth();
+  const { t, isRtl } = useLocalization();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -87,12 +88,23 @@ export default function SignUpScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <ThemedText variant="primary" size="3xl" weight="bold" style={styles.title}>
+            <Logo size={56} />
+            <ThemedText variant="primary" size="2xl" weight="extrabold" style={styles.title}>
               {t('createAccount')}
             </ThemedText>
             <ThemedText variant="tertiary" size="base" style={styles.subtitle}>
               {t('signUpSubtitle')}
             </ThemedText>
+          </View>
+
+          {/* Login / Signup tab switcher */}
+          <View style={[styles.tabSwitcher, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100] }]}>
+            <TouchableOpacity style={styles.tabPill} onPress={handleLogin}>
+              <ThemedText variant="tertiary" size="sm" weight="extrabold">{t('signIn')}</ThemedText>
+            </TouchableOpacity>
+            <View style={[styles.tabPill, { backgroundColor: theme.primary[500] }]}>
+              <ThemedText variant="inverse" size="sm" weight="extrabold">{t('signUp')}</ThemedText>
+            </View>
           </View>
 
           {/* Form */}
@@ -175,7 +187,7 @@ export default function SignUpScreen() {
             <View style={styles.divider}>
               <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
               <ThemedText variant="tertiary" size="sm" style={styles.dividerText}>
-                Or continue with
+                {t('orContinueWith')}
               </ThemedText>
               <View style={[styles.dividerLine, { backgroundColor: theme.gray[200] }]} />
             </View>
@@ -186,7 +198,7 @@ export default function SignUpScreen() {
               <ThemedText variant="success" size="sm" weight="medium">
                 {t('termsOfService')}
               </ThemedText>{' '}
-              و{' '}
+              {isRtl ? 'و' : 'and'}{' '}
               <ThemedText variant="success" size="sm" weight="medium">
                 {t('privacyPolicy')}
               </ThemedText>
@@ -224,14 +236,30 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 20,
   },
   title: {
+    marginTop: 20,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     textAlign: 'center',
+  },
+  tabSwitcher: {
+    flexDirection: 'row',
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    padding: 5,
+    marginBottom: 24,
+  },
+  tabPill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 999,
   },
   form: {
     width: '100%',
@@ -298,3 +326,4 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
 });
+export { RouteErrorFallback as ErrorBoundary } from '@/components/RouteErrorFallback';
