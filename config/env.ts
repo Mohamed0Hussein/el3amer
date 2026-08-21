@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
 type Extra = { apiUrl?: string };
 
@@ -9,8 +8,12 @@ function stripTrailingSlash(url: string) {
   return url.replace(/\/$/, '');
 }
 
-
-const fromEnv = Platform.OS === "android" ? `${process.env.EXPO_PUBLIC_BACKEND_URL}:${process.env.EXPO_PUBLIC_BACKEND_PORT}` : process.env.EXPO_PUBLIC_API_URL?.trim();
+// Same var on every platform. (Previously Android built its own URL from
+// EXPO_PUBLIC_BACKEND_URL + ':' + EXPO_PUBLIC_BACKEND_PORT, which blindly
+// appended the LAN-dev port to whatever host was configured — once that
+// host became the deployed HTTPS backend, it produced
+// "https://el3amer-backend.vercel.app:3000", which doesn't exist.)
+const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim();
 const fromExtra = typeof extra.apiUrl === 'string' ? extra.apiUrl.trim() : '';
 
 /**
