@@ -30,7 +30,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://primacy-backend.vercel.app",
+      "apiUrl": "https://el3amer-backend.vercel.app",
       "eas": {
         "projectId": "e526ceed-5006-4825-be6a-d557d73b1cb4"
       }
