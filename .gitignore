@@ -43,3 +43,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# local-only notes
+/SHIPPING_CHECKLIST.md
