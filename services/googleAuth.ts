@@ -1,56 +1,114 @@
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export interface GoogleUserInfo {
   id: string;
   email: string;
+  verified_email: boolean;
   name: string;
-  picture?: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  locale: string;
   accessToken: string;
 }
 
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
-});
+const discovery = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
+};
+
+const config = {
+  clientId: Platform.select({
+    ios: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS,
+    android: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID,
+    web: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
+  }),
+  scopes: ['openid', 'profile', 'email'],
+  redirectUri: AuthSession.makeRedirectUri(),
+};
 
 export const useGoogleAuth = () => {
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: config.clientId!,
+      scopes: config.scopes,
+      redirectUri: config.redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      usePKCE: true, 
+    },
+    discovery
+  );
+
+
   const signInWithGoogle = async (): Promise<GoogleUserInfo | null> => {
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
-      await GoogleSignin.signOut().catch(() => {});
-
-      const response = await GoogleSignin.signIn();
-
-      if (!isSuccessResponse(response)) {
+      if (!request) {
+        console.warn('Auth request not ready');
         return null;
       }
 
-      const { accessToken } = await GoogleSignin.getTokens();
-      const { user } = response.data;
+      const result = await promptAsync();
 
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name ?? user.email,
-        picture: user.photo ?? undefined,
-        accessToken,
-      };
+      if (result.type !== 'success') {
+        return null;
+      }
+
+      const { code } = result.params;
+
+      if (!code) {
+        console.error('No authorization code received');
+        return null;
+      }
+
+
+      const tokenResponse = await fetch(discovery.tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: config.clientId!,
+          code,
+          grant_type: 'authorization_code',
+          redirect_uri: config.redirectUri,
+          code_verifier: request.codeVerifier!, 
+        }).toString(),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok || !tokenData.access_token) {
+        console.error('Failed to exchange token:', tokenData);
+        return null;
+      }
+
+      // Get user info from Google API
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!userInfoResponse.ok) {
+        console.error('Failed to fetch user info:', await userInfoResponse.text());
+        return null;
+      }
+
+      const userInfo: GoogleUserInfo = await userInfoResponse.json();
+      userInfo.accessToken = tokenData.access_token;
+
+      return userInfo;
     } catch (error) {
-      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
-        return null;
-      }
       console.error('Google auth error:', error);
-      throw error;
+      return null;
     }
   };
 
   return {
     signInWithGoogle,
-    isReady: true,
+    request,
+    response,
+    isReady: !!request,
   };
 };

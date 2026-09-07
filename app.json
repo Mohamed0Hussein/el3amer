@@ -35,14 +35,6 @@
         "projectId": "e526ceed-5006-4825-be6a-d557d73b1cb4"
       }
     },
-    "owner": "mohamed0x1hussein",
-    "plugins": [
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.REDACTED"
-        }
-      ]
-    ]
+    "owner": "mohamed0x1hussein"
   }
 }
