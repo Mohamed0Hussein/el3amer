@@ -6,17 +6,15 @@ import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
-import { useTheme } from '@/hooks/useTheme';
 import { getProducts } from '@/services/products';
 import { Product } from '@/types/Product';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
-import { FlatList, StatusBar, StyleSheet } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 
 export default function FavoritesScreen() {
   const { favorites } = useFavorites();
-  const { theme } = useTheme();
   const { t } = useLocalization();
   
 
@@ -31,7 +29,6 @@ export default function FavoritesScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
       <ScreenHeader title={t('favorites')} />
 

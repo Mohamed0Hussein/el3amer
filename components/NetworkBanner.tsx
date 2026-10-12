@@ -1,19 +1,20 @@
 import { useLocalization } from '@/context/LocalizationContext';
-import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
+import { useNetInfo } from '@react-native-community/netinfo';
 import React from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { ThemedText } from './themed-text';
 
 export const NetworkBanner = () => {
-  const { isConnected } = useNetworkStatus();
+  const { isConnected, isInternetReachable } = useNetInfo();
+  const offline = isConnected === false || isInternetReachable === false;
   const { theme } = useTheme();
   const { t } = useLocalization();
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
 
   React.useEffect(() => {
-    if (isConnected === false) {
+    if (offline) {
       Animated.spring(slideAnim, {
         toValue: 0,
         useNativeDriver: true,
@@ -25,9 +26,9 @@ export const NetworkBanner = () => {
         useNativeDriver: true,
       }).start();
     }
-  }, [isConnected]);
+  }, [offline]);
 
-  if (isConnected === true) return null;
+  if (!offline) return null;
 
   return (
     <Animated.View 

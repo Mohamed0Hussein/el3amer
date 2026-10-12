@@ -9,15 +9,14 @@ import { useCartContext } from '@/context/CartContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useTheme } from '@/hooks/useTheme';
-import { createOrder } from '@/services/orders';
 import { getUserInfo } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 
-import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Cart = () => {
@@ -26,10 +25,8 @@ const Cart = () => {
     cart,
     updateCartQuantity,
     removeFromCart,
-    clearCart,
     cartTotal,
   } = useCartContext();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { theme } = useTheme();
   const { t } = useLocalization();
   const { user } = useAuth();
@@ -44,7 +41,7 @@ const Cart = () => {
     enabled: !!user,
   });
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cart.length === 0 || !user) return;
 
     const shippingAddress: string | undefined = me?.user?.address;
@@ -60,25 +57,7 @@ const Cart = () => {
       return;
     }
 
-    setIsCheckingOut(true);
-    try {
-      const order = await createOrder({
-        userId: Number(user.id),
-        items: cart.map((item) => ({ itemId: Number(item.id), quantity: item.quantity })),
-        shippingAddress,
-      });
-
-      clearCart();
-      router.push({ pathname: ROUTES.ORDER_DETAILS as any, params: { order: JSON.stringify(order) } });
-    } catch (error) {
-      console.error('Checkout error:', error);
-      Alert.alert(
-        t('orderFailed'),
-        t('orderFailedMessage')
-      );
-    } finally {
-      setIsCheckingOut(false);
-    }
+    router.push(ROUTES.CHECKOUT as never);
   };
 
   return (
@@ -123,6 +102,25 @@ const Cart = () => {
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.cartList}
             showsVerticalScrollIndicator={false}
+            ListFooterComponent={
+              <View style={[styles.summaryCard, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
+                <View style={styles.summaryRow}>
+                  <ThemedText variant="tertiary" size="sm">{t('subtotal')}</ThemedText>
+                  <ThemedText variant="tertiary" size="sm">{formatPrice(cartTotal)}</ThemedText>
+                </View>
+                <View style={styles.summaryRow}>
+                  <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
+                  <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>{t('free')}</ThemedText>
+                </View>
+                <View style={[styles.summaryDivider, { backgroundColor: theme.gray[100] }]} />
+                <View style={styles.summaryRow}>
+                  <ThemedText size="base" weight="extrabold">{t('total')}</ThemedText>
+                  <ThemedText size="lg" weight="extrabold" style={{ color: theme.primary[500] }}>
+                    {formatPrice(cartTotal)}
+                  </ThemedText>
+                </View>
+              </View>
+            }
             renderItem={({ item }) => (
               <View style={[styles.cartItem, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
                 <View style={[styles.itemThumb, { backgroundColor: theme.gray[50] }]}>
@@ -164,8 +162,9 @@ const Cart = () => {
                         {item.quantity}
                       </ThemedText>
                       <TouchableOpacity
-                        style={styles.stepperBtn}
+                        style={[styles.stepperBtn, item.quantity >= item.stock && { opacity: 0.4 }]}
                         onPress={() => updateCartQuantity(item.id, 1)}
+                        disabled={item.quantity >= item.stock}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <ThemedText variant="inverse" size="base" weight="extrabold">+</ThemedText>
@@ -181,28 +180,20 @@ const Cart = () => {
           />
 
           {/* Checkout */}
-          <View style={[styles.checkoutContainer, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100], paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.checkoutContainer, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100], paddingBottom: 16 }]}>
             <TouchableOpacity
               style={[
                 styles.checkoutButton,
                 { backgroundColor: theme.primary[500], shadowColor: theme.primary[700] },
-                isCheckingOut && { opacity: 0.7 }
               ]}
               onPress={handleCheckout}
-              disabled={isCheckingOut}
             >
-              {isCheckingOut ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <ThemedText variant="inverse" size="base" weight="extrabold">
-                    {t('proceedToCheckout')}
-                  </ThemedText>
-                  <ThemedText variant="inverse" size="base" weight="bold" style={styles.checkoutTotal}>
-                    · {formatPrice(cartTotal)}
-                  </ThemedText>
-                </>
-              )}
+              <ThemedText variant="inverse" size="base" weight="extrabold">
+                {t('proceedToCheckout')}
+              </ThemedText>
+              <ThemedText variant="inverse" size="base" weight="bold" style={styles.checkoutTotal}>
+                · {formatPrice(cartTotal)}
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </>
@@ -303,6 +294,21 @@ const styles = StyleSheet.create({
   stepperValue: {
     minWidth: 14,
     textAlign: 'center',
+  },
+  summaryCard: {
+    marginTop: 10,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
+    gap: 11,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryDivider: {
+    height: 1,
   },
   checkoutContainer: {
     position: 'absolute',

@@ -1,8 +1,13 @@
 import { STORAGE_KEYS } from '@/constants/storageKeys';
+import { useLocalization } from '@/context/LocalizationContext';
+import { unregisterPush } from '@/lib/notifications';
+import { queryClient } from '@/lib/queryClient';
 import { login, loginWithGoogle, logout, signup } from '@/services/auth';
+import { onSessionExpired } from '@/services/axios';
 import { GoogleUserInfo, useGoogleAuth } from '@/services/googleAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import React, { ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 
 interface User {
   id: string | number;
@@ -38,6 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isHydrating, setIsHydrating] = useState(true);
 
   const { signInWithGoogle, isReady } = useGoogleAuth();
+  const { t, language } = useLocalization();
 
   // Load user from local storage on app start
   useEffect(() => {
@@ -127,13 +133,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logoutUser = async () => {
     setIsLoggingOut(true);
     try {
-      await logout(user?.token || '');
+      if (user) await unregisterPush(user.id, language);
+      // Server logout is a no-op; never let a network error keep someone signed in.
+      await logout(user?.token || '').catch(() => {});
       setUser(null);
       await AsyncStorage.removeItem(STORAGE_KEYS.authUser);
+      // Drop cached orders/profile so the next account never sees them.
+      queryClient.clear();
     } finally {
       setIsLoggingOut(false);
     }
   };
+
+  // Expired token or deleted account: sign out properly, otherwise the route
+  // guard sees a user and bounces straight back from the login screen.
+  // Several requests can fail together, so only the first one acts.
+  const expiring = useRef(false);
+  useEffect(() => {
+    onSessionExpired(() => {
+      if (!user || expiring.current) return;
+      expiring.current = true;
+      Alert.alert(t('sessionExpired'), t('sessionExpiredBody'));
+      logoutUser().finally(() => {
+        expiring.current = false;
+      });
+    });
+  });
 
   return (
     <AuthContext.Provider

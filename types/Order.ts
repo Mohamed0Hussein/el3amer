@@ -33,4 +33,5 @@ export interface CreateOrderPayload {
   items: { itemId: number; quantity: number }[];
   shippingAddress?: string;
   paymentMethod?: 'cash' | 'card';
+  language?: string;
 }

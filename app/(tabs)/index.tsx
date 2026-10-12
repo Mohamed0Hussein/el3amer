@@ -1,5 +1,4 @@
 import { EmptyState } from '@/components/EmptyState';
-import { Logo } from '@/components/Logo';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductListSkeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
@@ -9,18 +8,25 @@ import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { getCategories } from '@/services/categories';
+import { getOrders } from '@/services/orders';
 import { getProducts } from '@/services/products';
+import { getUserInfo } from '@/services/user';
+import { ROUTES } from '@/constants/routes';
+import { router } from 'expo-router';
+import { useCartContext } from '@/context/CartContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { Category } from '@/types/Category';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { env } from '@/config/env';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Platform,
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -30,9 +36,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Cycled tint palette for category chips, matching the el3amer brand sheet.
 const CATEGORY_TINTS = [
-  { bg: '#E4F2F1', ink: '#0F6F6C' },
+  { bg: '#FFF3EB', ink: '#C94A0A' },
   { bg: '#FFFBEB', ink: '#A16207' },
-  { bg: '#FDF3E7', ink: '#B45309' },
+  { bg: '#E4F2F1', ink: '#0F6F6C' },
   { bg: '#FEF2F2', ink: '#B91C1C' },
   { bg: '#EFF6FF', ink: '#2563EB' },
   { bg: '#F0FDF4', ink: '#15803D' },
@@ -40,18 +46,20 @@ const CATEGORY_TINTS = [
 ];
 
 export default function HomeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<'name' | 'price_low' | 'price_high'>('name');
 
   const { theme } = useTheme();
   const { t, isRtl } = useLocalization();
   const { user } = useAuth();
+  const { addToCart } = useCartContext();
+  const formatPrice = useCurrency();
   const insets = useSafeAreaInsets();
+  const [bannerIndex, setBannerIndex] = useState(0);
 
   const { data: products = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['products'],
-    queryFn: () => getProducts(selectedCategory, searchQuery, true),
+    queryFn: () => getProducts(undefined, undefined, true),
   });
 
   const { data: fetchedCategories = [] } = useQuery({
@@ -59,10 +67,44 @@ export default function HomeScreen() {
     queryFn: getCategories,
   });
 
+  const { data: me } = useQuery({
+    queryKey: ['me', user?.id],
+    queryFn: () => getUserInfo(String(user!.id)),
+    enabled: !!user,
+  });
+  const address: string | undefined = me?.user?.address;
+
+  const { data: pastOrders = [] } = useQuery({
+    queryKey: ['orders'],
+    queryFn: getOrders,
+    enabled: !!user,
+  });
+
   const categories = useMemo(() => {
     const allCategory: Category = { id: 'all', name: t('cat_all'), icon: 'apps-outline' };
     return [allCategory, ...fetchedCategories];
   }, [fetchedCategories, t]);
+
+  // Most recently ordered distinct items, newest order first — real reorder
+  // history, not fabricated "popular" data.
+  const reorderItems = useMemo(() => {
+    const seen = new Map<number, (typeof pastOrders)[number]['items'][number]>();
+    for (const order of pastOrders) {
+      for (const item of order.items) {
+        if (!seen.has(item.id)) seen.set(item.id, item);
+      }
+    }
+    return Array.from(seen.values()).slice(0, 6);
+  }, [pastOrders]);
+
+  const banners = useMemo(
+    () => [
+      { eyebrow: t('bannerEyebrow1'), title: t('bannerTitle1'), sub: t('bannerSub1') },
+      { eyebrow: t('bannerEyebrow2'), title: t('bannerTitle2'), sub: t('bannerSub2') },
+      { eyebrow: t('bannerEyebrow3'), title: t('bannerTitle3'), sub: t('bannerSub3') },
+    ],
+    [t],
+  );
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -74,11 +116,9 @@ export default function HomeScreen() {
   const firstName = user?.fullName?.split(' ')[0];
 
   const filteredProducts = useMemo(() => {
-    let result = products.filter((product: Product) => {
-      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
+    const result = products.filter((product: Product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
 
     return [...result].sort((a, b) => {
       if (sortBy === 'name') {
@@ -88,7 +128,7 @@ export default function HomeScreen() {
       if (sortBy === 'price_high') return b.price - a.price;
       return 0;
     });
-  }, [products, selectedCategory, searchQuery, sortBy]);
+  }, [products, searchQuery, sortBy]);
 
   const renderProduct = useCallback(
     ({ item }: { item: Product }) => <ProductCard product={item} />,
@@ -105,17 +145,16 @@ export default function HomeScreen() {
     <>
       {/* Brand header */}
       <View style={[styles.header, { paddingTop: insets.top + tokens.space.md }]}>
-        <View style={styles.brandRow}>
-          <Logo size={44} />
+        <TouchableOpacity style={styles.brandRow} onPress={() => router.push(ROUTES.ADDRESSES as never)}>
+          <Ionicons name="location-outline" size={20} color={theme.primary[500]} />
           <View style={styles.brandText}>
-            <ThemedText variant="primary" size="xl" weight="extrabold">
-              {t('appTitle')}
-            </ThemedText>
-            <ThemedText variant="tertiary" size="xs" style={styles.tagline}>
-              {t('appTagline')}
+            <ThemedText size="sm" weight="bold">{t('deliverTo')}</ThemedText>
+            <ThemedText variant="tertiary" size="xs" numberOfLines={1} style={styles.tagline}>
+              {address || t('setAddress')}
             </ThemedText>
           </View>
-        </View>
+          <Ionicons name="chevron-down" size={16} color={theme.gray[400]} />
+        </TouchableOpacity>
 
         <ThemedText variant="primary" size="xl" weight="extrabold" style={styles.greeting}>
           {greeting}{firstName ? `${isRtl ? '،' : ','} ${firstName}` : ''}
@@ -141,6 +180,36 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {/* Promo banner */}
+      <View style={styles.bannerWrap}>
+        {/* Solid fill + soft circle instead of expo-linear-gradient: no native
+            module needed, so it renders on any existing dev build. */}
+        <View style={[styles.banner, { backgroundColor: theme.primary[500] }]}>
+          <View style={styles.bannerCircle} />
+          <ThemedText size="xs" weight="bold" style={{ color: theme.primary[200], letterSpacing: 1 }}>
+            {banners[bannerIndex].eyebrow}
+          </ThemedText>
+          <ThemedText variant="inverse" size="lg" weight="extrabold" style={styles.bannerTitle}>
+            {banners[bannerIndex].title}
+          </ThemedText>
+          <ThemedText size="sm" style={{ color: theme.primary[100], marginTop: 4 }}>
+            {banners[bannerIndex].sub}
+          </ThemedText>
+          <View style={styles.bannerDots}>
+            {banners.map((_, i) => (
+              <TouchableOpacity key={i} onPress={() => setBannerIndex(i)} hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}>
+                <View
+                  style={[
+                    styles.bannerDot,
+                    { width: i === bannerIndex ? 18 : 6, backgroundColor: i === bannerIndex ? '#fff' : 'rgba(255,255,255,0.4)' },
+                  ]}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+
       {/* Categories */}
       <ScrollView
         horizontal
@@ -148,30 +217,29 @@ export default function HomeScreen() {
         contentContainerStyle={styles.categoriesContent}
       >
         {categories.map((cat, index) => {
-          const active = selectedCategory === cat.id;
           const tint = CATEGORY_TINTS[index % CATEGORY_TINTS.length];
           return (
             <TouchableOpacity
               key={cat.id}
               style={styles.categoryItem}
-              onPress={() => setSelectedCategory(cat.id)}
+              onPress={() => router.push({ pathname: ROUTES.CATEGORY as never, params: { category: cat.id } })}
             >
               <View
                 style={[
                   styles.categoryCircle,
-                  { backgroundColor: active ? theme.primary[500] : tint.bg },
+                  { backgroundColor: tint.bg },
                 ]}
               >
                 <Ionicons
                   name={cat.icon as any}
                   size={22}
-                  color={active ? '#fff' : tint.ink}
+                  color={tint.ink}
                 />
               </View>
               <ThemedText
-                variant={active ? 'primary' : 'tertiary'}
+                variant="secondary"
                 size="xs"
-                weight={active ? 'bold' : 'medium'}
+                weight="bold"
                 style={styles.categoryLabel}
                 numberOfLines={1}
               >
@@ -181,6 +249,51 @@ export default function HomeScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Bought before (real reorder history) */}
+      {reorderItems.length > 0 && (
+        <View style={styles.reorderSection}>
+          <ThemedText variant="primary" size="base" weight="extrabold" style={styles.reorderTitle}>
+            {t('boughtBefore')}
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.reorderContent}
+          >
+            {reorderItems.map((item) => {
+              const imageUrl = item.image?.startsWith('http')
+                ? item.image
+                : `${env.apiOrigin}${item.image?.startsWith('/') ? '' : '/'}${item.image}`;
+              return (
+                <View
+                  key={item.id}
+                  style={[styles.reorderCard, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}
+                >
+                  <View style={[styles.reorderThumb, { backgroundColor: theme.gray[50] }]}>
+                    <Image source={{ uri: imageUrl }} style={styles.reorderThumbImage} contentFit="contain" />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <ThemedText size="xs" weight="bold" numberOfLines={1}>{item.name}</ThemedText>
+                    <ThemedText variant="tertiary" size="xs" style={{ marginTop: 1 }}>
+                      {formatPrice(item.price)}
+                    </ThemedText>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => addToCart(item as unknown as Product)}
+                    style={[styles.reorderAddBtn, { borderColor: theme.primary[500] }]}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <ThemedText size="xs" weight="extrabold" style={{ color: theme.primary[500] }}>
+                      {t('add')}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Result count & sort */}
       <View style={styles.sortContainer}>
@@ -215,7 +328,6 @@ export default function HomeScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
       {isLoading && !isRefetching ? (
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -249,11 +361,8 @@ export default function HomeScreen() {
               icon="search-outline"
               title={t('noProducts')}
               message={t('noProductsMessage')}
-              actionLabel={searchQuery || selectedCategory !== 'all' ? t('cat_all') : undefined}
-              onAction={() => {
-                setSearchQuery('');
-                setSelectedCategory('all');
-              }}
+              actionLabel={searchQuery ? t('cat_all') : undefined}
+              onAction={() => setSearchQuery('')}
             />
           }
         />
@@ -273,8 +382,8 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 18,
+    gap: 8,
+    marginBottom: 14,
   },
   brandText: {
     flex: 1,
@@ -303,6 +412,73 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontSize: 14,
+  },
+  bannerWrap: {
+    paddingHorizontal: 20,
+  },
+  banner: {
+    borderRadius: 20,
+    padding: 20,
+    overflow: 'hidden',
+  },
+  bannerCircle: {
+    position: 'absolute',
+    start: -30,
+    bottom: -40,
+    width: 150,
+    height: 150,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  bannerTitle: {
+    marginTop: 8,
+    maxWidth: 240,
+    lineHeight: 24,
+  },
+  bannerDots: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 18,
+  },
+  bannerDot: {
+    height: 6,
+    borderRadius: 999,
+  },
+  reorderSection: {
+    paddingTop: 24,
+  },
+  reorderTitle: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  reorderContent: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  reorderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    width: 200,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 10,
+  },
+  reorderThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  reorderThumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  reorderAddBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1.5,
   },
   categoriesContent: {
     paddingHorizontal: 16,
