@@ -7,7 +7,6 @@ import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import { forgotPassword } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -72,24 +71,6 @@ export default function LoginScreen() {
       await loginUserWithGoogle();
     } catch (error: any) {
       console.error('Google login error:', error);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email) {
-      Alert.alert(t('error'), t('invalidEmail'));
-      return;
-    }
-    if (!validateEmail(email)) {
-      Alert.alert(t('error'), t('invalidEmail'));
-      return;
-    }
-
-    try {
-      await forgotPassword(email);
-      Alert.alert(t('success'), 'Password reset email sent!');
-    } catch (error: any) {
-      Alert.alert(t('error'), error.message || 'Failed to send reset email');
     }
   };
 
@@ -170,12 +151,12 @@ export default function LoginScreen() {
                 }
               />
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.forgotPassword}
-                onPress={handleForgotPassword}
+                onPress={() => router.push({ pathname: ROUTES.FORGOT_PASSWORD, params: { email: email.trim() } })}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <ThemedText variant="success" size="sm" weight="medium">
+                <ThemedText size="sm" weight="medium" style={{ color: theme.primary[500] }}>
                   {t('forgotPassword')}
                 </ThemedText>
               </TouchableOpacity>
@@ -234,7 +215,7 @@ export default function LoginScreen() {
               {t('dontHaveAccount')}{' '}
             </ThemedText>
             <TouchableOpacity onPress={handleSignUp} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <ThemedText variant="success" size="base" weight="semibold">
+              <ThemedText size="base" weight="semibold" style={{ color: theme.primary[500] }}>
                 {t('signUp')}
               </ThemedText>
             </TouchableOpacity>

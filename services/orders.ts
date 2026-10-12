@@ -21,9 +21,21 @@ const normalizeOrder = (raw: any): Order => ({
  * requires it even though the order is always created for the authenticated
  * caller (server ignores the value and uses the auth token instead).
  */
-export const createOrder = async (payload: CreateOrderPayload): Promise<Order> => {
+export const createOrder = async (payload: CreateOrderPayload): Promise<{ order: Order; paymentUrl: string | null }> => {
   const res = await axios.post('/orders', payload);
-  return normalizeOrder(res.data.order);
+  return { order: normalizeOrder(res.data.order), paymentUrl: res.data.paymentUrl ?? null };
+};
+
+// Card checkout is only offered once the store has Kashier keys set up.
+export const getPaymentConfig = async (): Promise<{ card: boolean }> => {
+  const res = await axios.get('/payments/config');
+  return res.data;
+};
+
+// New Kashier checkout page for an unpaid card order.
+export const payOrder = async (orderId: number, language: string): Promise<string> => {
+  const res = await axios.post(`/orders/${orderId}/pay`, { language });
+  return res.data.paymentUrl;
 };
 
 /**

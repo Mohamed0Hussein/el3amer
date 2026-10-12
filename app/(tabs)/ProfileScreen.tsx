@@ -3,7 +3,7 @@ import { ROUTES } from "@/constants/routes";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from 'expo-router';
 import React from "react";
-import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -30,7 +30,6 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <ThemedText size="xl" weight="extrabold">

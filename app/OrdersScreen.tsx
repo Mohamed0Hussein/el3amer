@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 
 import React from 'react';
-import { FlatList, RefreshControl, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function OrdersScreen() {
   const { theme } = useTheme();
@@ -45,7 +45,7 @@ export default function OrdersScreen() {
             ]}
           >
             <ThemedText style={{ color: getStatusColor(order.status, theme) }} size="xs" weight="extrabold">
-              {order.status.toUpperCase()}
+              {t(`status_${order.status}`)}
             </ThemedText>
           </View>
         </View>
@@ -66,7 +66,6 @@ export default function OrdersScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
       <ScreenHeader title={t('myOrders')} />
 

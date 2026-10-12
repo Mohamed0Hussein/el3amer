@@ -1,10 +1,7 @@
 import { env } from '@/config/env';
-import { ROUTES } from '@/constants/routes';
 import { STORAGE_KEYS } from '@/constants/storageKeys';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { router } from 'expo-router';
-import { Alert } from 'react-native';
 
 /**
  * Base URL from `EXPO_PUBLIC_API_URL` or `expo.extra.apiUrl` (see `config/env.ts`).
@@ -39,6 +36,15 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Messages the backend sends when the token itself is no good (expired, or the
+// account was deleted), as opposed to a wrong password on the login screen.
+const SESSION_GONE = ['Invalid or expired token', 'User no longer exists'];
+
+let sessionExpired = () => {};
+export const onSessionExpired = (handler: () => void) => {
+  sessionExpired = handler;
+};
+
 // Response interceptor - handle errors globally
 axiosInstance.interceptors.response.use(
   (response) => {
@@ -53,14 +59,8 @@ axiosInstance.interceptors.response.use(
       const status = error.response.status;
       switch (status) {
         case 401:
-          if (error.response.data?.message === 'Invalid or expired token') {
-            AsyncStorage.removeItem(STORAGE_KEYS.authUser).catch(console.error);
-            Alert.alert(
-              'Session Expired',
-              'Your session has expired. Please log in again.',
-              [{ text: 'OK' }]
-            );
-            router.replace(ROUTES.LOGIN);
+          if (SESSION_GONE.includes(error.response.data?.message)) {
+            sessionExpired();
           }
           error.message = 'Unauthorized. Please login again.';
           break;

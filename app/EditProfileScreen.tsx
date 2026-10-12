@@ -17,25 +17,26 @@ export default function EditProfileScreen() {
   const { t } = useLocalization();
   
 
-  const queryClient = useQueryClient(); // ← new
+  const queryClient = useQueryClient();
 
+  // Same cache key Home/Cart/Checkout use — Home fetches it right after
+  // sign-in, so this screen opens with the data already there.
   const { data, isLoading } = useQuery({
-    queryFn: () => getUserInfo(user?.id as string),
-    queryKey: [user?.id],
+    queryKey: ['me', user?.id],
+    queryFn: () => getUserInfo(String(user!.id)),
+    enabled: !!user,
   });
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     setFullName(data?.user?.fullName || '');
     setEmail(data?.user?.email || '');
-    setAddress(data?.user?.address || '');
     setPhone(data?.user?.phone || '');
-  }, [data, isLoading]);
+  }, [data]);
 
   const handleSave = async () => {
     if (!user?.id) return;
@@ -46,12 +47,10 @@ export default function EditProfileScreen() {
         fullName,
         email,
         phone,
-        address,
       });
 
 
-      // Invalidate cache so the screen refetches fresh data on next visit
-      await queryClient.invalidateQueries({ queryKey: [user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ['me', user.id] });
 
 
       Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
@@ -104,19 +103,6 @@ export default function EditProfileScreen() {
               keyboardType="phone-pad"
               style={[styles.input, { backgroundColor: theme.gray[50], color: theme.text.primary }]}
               placeholder="Enter your phone"
-              placeholderTextColor={theme.gray[400]}
-            />
-          )}
-
-          <ThemedText size="lg" weight="semibold" style={styles.label}>Address</ThemedText>
-          {isLoading ? <ActivityIndicator color={theme.primary[500]} /> : (
-            <ThemedTextInput
-              value={address}
-              editable={!isLoading}
-              onChangeText={setAddress}
-              keyboardType="default"
-              style={[styles.input, { backgroundColor: theme.gray[50], color: theme.text.primary }]}
-              placeholder="Enter your address"
               placeholderTextColor={theme.gray[400]}
             />
           )}

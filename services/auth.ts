@@ -38,15 +38,15 @@ export const getUser = async (token: string) => {
     return res.data;
 };
 
-// FORGOT PASSWORD - Request password reset email
-export const forgotPassword = async (email: string) => {
-    const res = await axios.post('/auth/forgot-password', { email });
+// FORGOT PASSWORD - emails a 6-digit code (in the app's language)
+export const forgotPassword = async (email: string, language: string) => {
+    const res = await axios.post('/auth/forgot-password', { email, language });
     return res.data;
 };
 
-// RESET PASSWORD - Reset password with token from email
-export const resetPassword = async (token: string, newPassword: string) => {
-    const res = await axios.post('/auth/reset-password', { token, newPassword });
+// RESET PASSWORD - with the code from that email
+export const resetPassword = async (email: string, code: string, newPassword: string) => {
+    const res = await axios.post('/auth/reset-password', { email, code, newPassword });
     return res.data;
 };
 
@@ -58,16 +58,3 @@ export const changePassword = async (currentPassword: string, newPassword: strin
     );
     return res.data;
 };
-
-// VERIFY EMAIL
-export const verifyEmail = async (token: string) => {
-    const res = await axios.post('/auth/verify-email', { token });
-    return res.data;
-};
-
-// RESEND VERIFICATION EMAIL
-export const resendVerification = async (email: string) => {
-    const res = await axios.post('/auth/resend-verification', { email });
-    return res.data;
-};
-

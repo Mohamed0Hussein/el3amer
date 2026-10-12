@@ -2,7 +2,8 @@ import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { CartItem } from '@/types/CardItem';
 import { Product } from '@/types/Product';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 interface CartContextType {
   cart: CartItem[];
@@ -52,11 +53,23 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
     }
   }, [cart, isHydrated]);
 
+  // Quantities never go above the stock we last saw; the backend re-checks at checkout.
+  // Signing out empties the cart so the next account on this phone starts clean.
+  const { user } = useAuth();
+  const prevUserId = useRef(user?.id);
+  useEffect(() => {
+    if (prevUserId.current != null && user == null) setCart([]);
+    prevUserId.current = user?.id;
+  }, [user]);
+
   const addToCart = useCallback((product: Product) => {
+    if (product.stock <= 0) return;
     setCart(prev => {
       const existing = prev.find(p => p.id === product.id);
       return existing
-        ? prev.map(p => p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p)
+        ? prev.map(p => p.id === product.id
+            ? { ...p, stock: product.stock, quantity: Math.min(p.quantity + 1, product.stock) }
+            : p)
         : [...prev, { ...product, quantity: 1 }];
     });
   }, []);
@@ -64,7 +77,7 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
   const updateCartQuantity = useCallback((id: number, change: number) => {
     setCart(prev =>
       prev
-        .map(p => p.id === id ? { ...p, quantity: p.quantity + change } : p)
+        .map(p => p.id === id ? { ...p, quantity: Math.min(p.quantity + change, p.stock) } : p)
         .filter(p => p.quantity > 0),
     );
   }, []);

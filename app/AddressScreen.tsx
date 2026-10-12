@@ -1,26 +1,45 @@
+import { PinMap, PinMapHandle } from '@/components/PinMap';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
+import { DELIVERY_ZONE, isInDeliveryZone, Point } from '@/constants/deliveryZone';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { getUserInfo, updateUser } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-// The backend only stores a single free-text address per user (User.address) —
-// there's no address-book model, so this screen edits that one field directly
-// instead of pretending to manage a list of saved addresses.
+const formatPlace = (p: Location.LocationGeocodedAddress) =>
+  p.formattedAddress ??
+  [p.streetNumber && p.street ? `${p.streetNumber} ${p.street}` : p.street, p.district, p.city ?? p.subregion]
+    .filter(Boolean)
+    .join(', ');
+
+// Android's geocoder only runs with location permission — ask the first time
+// it's needed; if refused, the user just types the address.
+const ensureLocationPermission = async () => {
+  const current = await Location.getForegroundPermissionsAsync();
+  if (current.granted) return true;
+  if (!current.canAskAgain) return false;
+  return (await Location.requestForegroundPermissionsAsync()).granted;
+};
+
+// The backend stores one address per user (User.address) plus its map pin
+// (User.latitude/longitude); orders copy the pin so the rider gets the exact spot.
 export default function AddressScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const mapRef = useRef<PinMapHandle>(null);
+  const lookupId = useRef(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ['me', user?.id],
@@ -29,17 +48,69 @@ export default function AddressScreen() {
   });
 
   const [address, setAddress] = useState('');
+  const [point, setPoint] = useState<Point | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const saved: Point | null =
+    data?.user?.latitude != null && data?.user?.longitude != null
+      ? { latitude: data.user.latitude, longitude: data.user.longitude }
+      : null;
+
+  const outsideZone = !!point && !isInDeliveryZone(point);
+  const outsideZoneMessage = t('outsideZoneBody').replace('{km}', String(DELIVERY_ZONE.radiusKm));
 
   useEffect(() => {
     setAddress(data?.user?.address || '');
-  }, [data]);
+    setPoint(saved);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fill the text field from the pin; the user can still edit it afterwards.
+  const fillAddressFrom = async (p: Point) => {
+    const id = ++lookupId.current;
+    try {
+      if (!(await ensureLocationPermission())) return;
+      const [place] = await Location.reverseGeocodeAsync(p);
+      // Drop answers for pins the user has already moved away from.
+      if (place && id === lookupId.current) setAddress(formatPlace(place));
+    } catch {
+      // Geocoder unavailable — the user just types the address.
+    }
+  };
+
+  const onMapMove = (p: Point) => {
+    setPoint(p);
+    fillAddressFrom(p);
+  };
+
+  const locateMe = async () => {
+    setIsLocating(true);
+    try {
+      if (!(await ensureLocationPermission())) {
+        Alert.alert(t('deliveryAddress'), t('locationDenied'));
+        return;
+      }
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const p = { latitude: coords.latitude, longitude: coords.longitude };
+      mapRef.current?.moveTo(p);
+      onMapMove(p);
+    } catch (error) {
+      console.error(error);
+      Alert.alert(t('error'), t('locationDenied'));
+    } finally {
+      setIsLocating(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user?.id) return;
+    if (outsideZone) {
+      Alert.alert(t('outsideZoneTitle'), outsideZoneMessage);
+      return;
+    }
     setIsSaving(true);
     try {
-      await updateUser(String(user.id), { address: address.trim() });
+      await updateUser(String(user.id), { address: address.trim(), ...(point ?? {}) });
       await queryClient.invalidateQueries({ queryKey: ['me', user.id] });
       Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
         { text: t('ok'), onPress: () => router.back() },
@@ -54,20 +125,62 @@ export default function AddressScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
       <ScreenHeader title={t('deliveryAddress')} />
 
+      {/* No ScrollView: it would fight the map for drag gestures. The map
+          flexes, so it shrinks when the keyboard opens. */}
       <View style={styles.content}>
-        <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
-          <View style={[styles.iconCircle, { backgroundColor: theme.primary[50] }]}>
-            <Ionicons name="location-outline" size={22} color={theme.primary[500]} />
+        <View style={[styles.mapCard, { borderColor: theme.gray[100], backgroundColor: theme.gray[100] }]}>
+          {isLoading ? (
+            <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.primary[500]} />
+          ) : (
+            // No saved pin yet: start on the store with the whole zone in view.
+            <PinMap ref={mapRef} initial={saved ?? DELIVERY_ZONE.center} zoom={saved ? 17 : null} onMove={onMapMove} />
+          )}
+
+          {/* Fixed center pin: the map moves under it. Tip sits on the center. */}
+          <View pointerEvents="none" style={styles.pinWrap}>
+            <Ionicons name="location" size={42} color={theme.primary[500]} />
           </View>
-          <ThemedText size="sm" weight="bold" style={{ marginTop: 12 }}>
+
+          <TouchableOpacity
+            onPress={locateMe}
+            disabled={isLocating}
+            style={[styles.locateBtn, { backgroundColor: theme.background.card }]}
+            accessibilityLabel={t('useMyLocation')}
+          >
+            {isLocating ? (
+              <ActivityIndicator size="small" color={theme.primary[500]} />
+            ) : (
+              <Ionicons name="locate" size={20} color={theme.primary[500]} />
+            )}
+          </TouchableOpacity>
+        </View>
+        {outsideZone ? (
+          <View style={[styles.zoneWarning, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+            <Ionicons name="alert-circle" size={18} color="#B91C1C" />
+            <View style={{ flex: 1 }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>
+                {t('outsideZoneTitle')}
+              </ThemedText>
+              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+                {outsideZoneMessage}
+              </ThemedText>
+            </View>
+          </View>
+        ) : (
+          <ThemedText variant="tertiary" size="xs" style={styles.pinHint}>
+            {t('pinHint')}
+          </ThemedText>
+        )}
+
+        <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
+          <ThemedText size="sm" weight="bold">
             {t('deliveryAddress')}
           </ThemedText>
           <ThemedText variant="tertiary" size="xs" style={{ marginTop: 3, lineHeight: 17 }}>
-            Used to calculate delivery and shown to your rider at checkout.
+            {t('addressDetailsHint')}
           </ThemedText>
 
           <ThemedTextInput
@@ -75,8 +188,8 @@ export default function AddressScreen() {
             editable={!isLoading}
             onChangeText={setAddress}
             multiline
-            placeholder="e.g. 12 El Galaa St, Mohandessin, Giza"
-            containerStyle={{ marginTop: 16, marginBottom: 0 }}
+            placeholder={t('addressPlaceholder')}
+            containerStyle={{ marginTop: 14, marginBottom: 0 }}
             style={styles.input}
           />
         </View>
@@ -87,7 +200,7 @@ export default function AddressScreen() {
           onPress={handleSave}
           loading={isSaving}
           disabled={isLoading}
-          style={{ marginTop: 20 }}
+          style={{ marginTop: 16 }}
         >
           {t('save')}
         </ThemedButton>
@@ -101,19 +214,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  mapCard: {
+    flex: 1,
+    minHeight: 160,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  pinWrap: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -21,
+    marginTop: -40,
+  },
+  locateBtn: {
+    position: 'absolute',
+    bottom: 12,
+    end: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1C1712',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  pinHint: {
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  zoneWarning: {
+    flexDirection: 'row',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 12,
   },
   card: {
     borderRadius: 20,
     borderWidth: 1,
     padding: 18,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   input: {
     minHeight: 60,

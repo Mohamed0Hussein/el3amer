@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#22c55e"
+      "backgroundColor": "#C94A0A"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -22,7 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#22c55e"
+        "backgroundColor": "#C94A0A"
       },
       "package": "com.el3amer.app"
     },
@@ -35,6 +35,20 @@
         "projectId": "e526ceed-5006-4825-be6a-d557d73b1cb4"
       }
     },
-    "owner": "mohamed0x1hussein"
+    "owner": "mohamed0x1hussein",
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#C94A0A"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "El3amer uses your location to place your delivery pin on the map."
+        }
+      ]
+    ]
   }
 }

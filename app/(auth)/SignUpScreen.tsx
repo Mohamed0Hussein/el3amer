@@ -195,11 +195,21 @@ export default function SignUpScreen() {
             {/* Terms */}
             <ThemedText variant="tertiary" size="sm" style={styles.terms}>
               {t('termsPrefix')}{' '}
-              <ThemedText variant="success" size="sm" weight="medium">
+              <ThemedText
+                size="sm"
+                weight="medium"
+                style={{ color: theme.primary[500] }}
+                onPress={() => router.push({ pathname: ROUTES.LEGAL, params: { doc: 'terms' } })}
+              >
                 {t('termsOfService')}
               </ThemedText>{' '}
               {isRtl ? 'و' : 'and'}{' '}
-              <ThemedText variant="success" size="sm" weight="medium">
+              <ThemedText
+                size="sm"
+                weight="medium"
+                style={{ color: theme.primary[500] }}
+                onPress={() => router.push({ pathname: ROUTES.LEGAL, params: { doc: 'privacy' } })}
+              >
                 {t('privacyPolicy')}
               </ThemedText>
             </ThemedText>
@@ -211,7 +221,7 @@ export default function SignUpScreen() {
               {t('alreadyHaveAccount')}{' '}
             </ThemedText>
             <TouchableOpacity onPress={handleLogin}>
-              <ThemedText variant="success" size="base" weight="semibold">
+              <ThemedText size="base" weight="semibold" style={{ color: theme.primary[500] }}>
                 {t('signIn')}
               </ThemedText>
             </TouchableOpacity>

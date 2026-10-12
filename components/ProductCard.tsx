@@ -1,164 +1,177 @@
 import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
-import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { formatUnit } from '@/constants/format';
 import { useCurrency } from '@/hooks/useCurrency';
-import type { AuthenticatedStackParamList } from '@/types/navigation';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { memo, useCallback } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { env } from '@/config/env';
-import { ThemedButton } from './themed-button';
 import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
 
 const { width } = Dimensions.get('window');
 
-type Nav = NativeStackNavigationProp<AuthenticatedStackParamList>;
-
 export const ProductCard = memo(function ProductCard({ product }: { product: Product }) {
-  const { addToCart } = useCartContext();
+  const { cart, addToCart, updateCartQuantity } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
   const { theme, tokens } = useTheme();
-  const { t } = useLocalization();
   const formatPrice = useCurrency();
 
   const isFav = favorites.includes(product.id);
+  const qty = cart.find((c) => c.id === product.id)?.quantity ?? 0;
 
-  const imageUrl = product.image?.startsWith('http') 
-    ? product.image 
+  const imageUrl = product.image?.startsWith('http')
+    ? product.image
     : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
 
   const openDetails = useCallback(() => {
     router.push({ pathname: ROUTES.PRODUCT_DETAILS as any, params: { product: JSON.stringify(product) } });
   }, [product]);
 
-  const onToggleFavorite = useCallback(() => {
-    toggleFavorite(product.id);
-  }, [toggleFavorite, product.id]);
-
-  const onAdd = useCallback(() => {
-    addToCart(product);
-  }, [addToCart, product]);
-
   return (
-    <View style={styles.container}>
-      <ThemedView variant="card" style={[styles.productCard, { borderRadius: tokens.radius.lg, overflow: 'hidden' }]}>
-        <Pressable 
-          onPress={openDetails}
-          android_ripple={{ color: theme.primary[100] }}
-          style={({ pressed }) => [
-            styles.pressableContainer,
-            pressed && Platform.OS !== 'android' && { opacity: 0.7 }
-          ]}
+    <Pressable
+      onPress={openDetails}
+      // No android_ripple: on Android it freezes the background color, so the
+      // card stayed dark after a live dark→light switch.
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: theme.background.card, borderColor: theme.gray[100] },
+        pressed && { opacity: 0.85 },
+      ]}
+    >
+      <View style={[styles.imageBox, { backgroundColor: theme.gray[50] }]}>
+        <Image source={{ uri: imageUrl }} style={styles.image} contentFit="contain" />
+        <TouchableOpacity
+          onPress={() => toggleFavorite(product.id)}
+          style={styles.favBtn}
+          hitSlop={tokens.hitSlop}
         >
-          <ThemedView style={styles.productHeader}>
-            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="contain" />
-            <Pressable 
-              onPress={onToggleFavorite} 
-              style={({ pressed }) => [
-                styles.favoriteBtn,
-                pressed && Platform.OS !== 'android' && { opacity: 0.5 }
-              ]}
+          <Ionicons
+            name={isFav ? 'heart' : 'heart-outline'}
+            size={15}
+            color={isFav ? theme.status.error : theme.gray[500]}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ThemedText size="sm" weight="bold" numberOfLines={2} style={styles.name}>
+        {product.name}
+      </ThemedText>
+      <ThemedText variant="tertiary" size="xs">{formatUnit(product.unit)}</ThemedText>
+
+      <View style={styles.bottomRow}>
+        <ThemedText
+          size="base"
+          weight="extrabold"
+          style={{ flexShrink: 1 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          {formatPrice(product.price)}
+        </ThemedText>
+        {qty > 0 ? (
+          <View style={[styles.stepper, { backgroundColor: theme.primary[500] }]}>
+            <TouchableOpacity style={styles.stepBtn} onPress={() => updateCartQuantity(product.id, -1)} hitSlop={tokens.hitSlop}>
+              <ThemedText variant="inverse" weight="extrabold">−</ThemedText>
+            </TouchableOpacity>
+            <ThemedText variant="inverse" size="xs" weight="extrabold" style={styles.stepValue}>{qty}</ThemedText>
+            <TouchableOpacity
+              style={[styles.stepBtn, qty >= product.stock && { opacity: 0.4 }]}
+              onPress={() => updateCartQuantity(product.id, 1)}
+              disabled={qty >= product.stock}
               hitSlop={tokens.hitSlop}
-              android_ripple={{ color: theme.gray[200], borderless: true, radius: 24 }}
             >
-              <Ionicons
-                name={isFav ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isFav ? theme.status.error : theme.gray[400]}
-              />
-            </Pressable>
-          </ThemedView>
-          
-          <ThemedText 
-            variant="primary" 
-            size="sm" 
-            weight="semibold" 
-            style={styles.productName}
-            numberOfLines={1}
+              <ThemedText variant="inverse" weight="extrabold">+</ThemedText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={() => addToCart(product)}
+            disabled={product.stock <= 0}
+            style={[styles.addBtn, { borderColor: theme.primary[500] }, product.stock <= 0 && { opacity: 0.4 }]}
+            hitSlop={tokens.hitSlop}
           >
-            {product.name}
-          </ThemedText>
-          
-          <ThemedView style={styles.priceContainer}>
-            <ThemedText style={{ color: theme.primary[500] }} size="lg" weight="extrabold">
-              {formatPrice(product.price)}
-            </ThemedText>
-            <ThemedText variant="tertiary" size="sm" style={styles.productUnit}>
-              /{formatUnit(product.unit)}
-            </ThemedText>
-          </ThemedView>
-          
-          <ThemedButton
-            variant="primary"
-            size="sm"
-            onPress={onAdd}
-            style={styles.addButton}
-          >
-            {t('addToCart')}
-          </ThemedButton>
-        </Pressable>
-      </ThemedView>
-    </View>
+            <Ionicons name="add" size={20} color={theme.primary[500]} />
+          </TouchableOpacity>
+        )}
+      </View>
+    </Pressable>
   );
 });
 
-import { View } from 'react-native';
-
 const styles = StyleSheet.create({
-  container: {
-    width: (width - 48) / 2,
-    marginBottom: 16,
-  },
-  productCard: {
-    flex: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+  card: {
+    width: (width - 52) / 2,
+    marginBottom: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 10,
+    shadowColor: '#1C1712',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
     elevation: 2,
   },
-  pressableContainer: {
-    padding: 12,
-    flex: 1,
+  imageBox: {
+    height: 104,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
-  productHeader: {
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  favBtn: {
+    position: 'absolute',
+    top: 6,
+    end: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  name: {
+    marginTop: 9,
+    minHeight: 36,
+    lineHeight: 18,
+  },
+  bottomRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    gap: 6,
+    marginTop: 9,
   },
-  productImage: {
-    width: 80,
-    height: 80,
+  addBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  productEmoji: {
-    fontSize: 48,
-  },
-  favoriteBtn: {
-    padding: 4,
-  },
-  productName: {
-    marginBottom: 4,
-  },
-  priceContainer: {
+  stepper: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 12,
+    alignItems: 'center',
+    borderRadius: 999,
+    padding: 4,
+    gap: 3,
   },
-  productUnit: {
-    marginLeft: 2,
+  stepBtn: {
+    width: 21,
+    height: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  addButton: {
+  stepValue: {
+    minWidth: 11,
+    textAlign: 'center',
   },
 });

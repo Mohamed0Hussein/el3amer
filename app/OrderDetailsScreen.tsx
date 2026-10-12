@@ -3,38 +3,74 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { env } from '@/config/env';
 import { formatUnit } from '@/constants/format';
+import { ROUTES } from '@/constants/routes';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useTheme } from '@/hooks/useTheme';
-import { cancelOrder } from '@/services/orders';
+import { queryClient } from '@/lib/queryClient';
+import { cancelOrder, getOrderById, payOrder } from '@/services/orders';
 import { Order } from '@/types/Order';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-const STAGES: { key: Order['status']; label: string }[] = [
-  { key: 'pending', label: 'Order received' },
-  { key: 'confirmed', label: 'Confirmed' },
-  { key: 'shipped', label: 'On the way' },
-  { key: 'delivered', label: 'Delivered' },
-];
+const STAGES = ['pending', 'confirmed', 'shipped', 'delivered'] as const;
+
+const STAGE_ICONS: Record<Order['status'], keyof typeof Ionicons.glyphMap> = {
+  pending: 'receipt-outline',
+  confirmed: 'basket-outline',
+  shipped: 'bicycle-outline',
+  delivered: 'checkmark-done-outline',
+  cancelled: 'close-circle-outline',
+};
 
 export default function OrderDetailsScreen() {
   const params = useLocalSearchParams();
-  const [order, setOrder] = useState<Order>(
+  const [initial] = useState<Order>(() =>
     typeof params.order === 'string' ? JSON.parse(params.order) : params.order,
   );
+  // Keeps polling while the order can still change, so the store's updates
+  // show up without leaving the screen.
+  const { data: order = initial, refetch } = useQuery({
+    queryKey: ['order', initial.id],
+    queryFn: () => getOrderById(initial.id),
+    initialData: initial,
+    refetchInterval: (query) =>
+      ['delivered', 'cancelled'].includes(query.state.data?.status ?? '') ? false : 30_000,
+  });
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   const { theme } = useTheme();
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
   const formatPrice = useCurrency();
   const [isCancelling, setIsCancelling] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const isCancelled = order.status === 'cancelled';
-  const currentStage = isCancelled ? -1 : STAGES.findIndex(s => s.key === order.status);
+  const currentStage = isCancelled ? -1 : STAGES.indexOf(order.status as (typeof STAGES)[number]);
   const canCancel = order.status === 'pending' || order.status === 'confirmed';
+  const isCard = order.paymentMethod === 'card';
+  const needsPayment = isCard && order.paymentStatus !== 'paid' && order.status === 'pending';
+  const [startingPayment, setStartingPayment] = useState(false);
+
+  const handlePay = async () => {
+    setStartingPayment(true);
+    try {
+      const url = await payOrder(order.id, language);
+      router.push({ pathname: ROUTES.PAYMENT as any, params: { orderId: order.id, url, back: '1' } });
+    } catch {
+      Alert.alert(t('error'), t('paymentStartFailed'));
+    } finally {
+      setStartingPayment(false);
+    }
+  };
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -42,7 +78,10 @@ export default function OrderDetailsScreen() {
       // The cancel endpoint returns a bare order row with no items/user
       // include, so only take the fields it actually updated.
       const updated = await cancelOrder(order.id);
-      setOrder(prev => ({ ...prev, status: updated.status, updatedAt: updated.updatedAt }));
+      queryClient.setQueryData<Order>(['order', order.id], (prev) =>
+        prev && { ...prev, status: updated.status, updatedAt: updated.updatedAt },
+      );
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
     } catch (error) {
       console.error('Cancel order error:', error);
       Alert.alert(t('error'), t('orderFailedMessage'));
@@ -79,11 +118,32 @@ export default function OrderDetailsScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
-      <ScreenHeader title={`#AMR-${order.id}`} subtitle={new Date(order.createdAt).toLocaleString()} />
+      <ScreenHeader
+        title={`#AMR-${order.id}`}
+        subtitle={`${t('placedAt')} ${new Date(order.createdAt).toLocaleString()}`}
+      />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary[500]} colors={[theme.primary[500]]} />}
+      >
+        {/* Current status hero */}
+        <View style={[styles.hero, { backgroundColor: isCancelled ? '#FEF2F2' : theme.primary[50] }]}>
+          <View style={[styles.heroIcon, { backgroundColor: isCancelled ? theme.status.error : theme.primary[500] }]}>
+            <Ionicons name={STAGE_ICONS[order.status]} size={26} color="#fff" />
+          </View>
+          <ThemedText size="lg" weight="extrabold" style={{ marginTop: 12 }}>
+            {t(`status_${order.status}`)}
+          </ThemedText>
+          {!isCancelled && order.status !== 'delivered' && (
+            <ThemedText variant="tertiary" size="xs" style={{ marginTop: 4 }}>
+              {t('deliveryEta')}
+            </ThemedText>
+          )}
+        </View>
+
         {/* Status timeline */}
         <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           {isCancelled ? (
@@ -91,10 +151,10 @@ export default function OrderDetailsScreen() {
               <Ionicons name="close-circle" size={22} color={theme.status.error} />
               <View style={{ flex: 1 }}>
                 <ThemedText size="sm" weight="extrabold" style={{ color: theme.status.error }}>
-                  Order cancelled
+                  {t('orderCancelled')}
                 </ThemedText>
                 <ThemedText variant="tertiary" size="xs" style={{ marginTop: 3 }}>
-                  Any payment made will be refunded within 3 business days.
+                  {t('refundNote')}
                 </ThemedText>
               </View>
             </View>
@@ -103,7 +163,7 @@ export default function OrderDetailsScreen() {
               const done = i <= currentStage;
               const isLast = i === STAGES.length - 1;
               return (
-                <View key={stage.key} style={styles.timelineRow}>
+                <View key={stage} style={styles.timelineRow}>
                   <View style={styles.timelineDotCol}>
                     <View
                       style={[
@@ -131,8 +191,13 @@ export default function OrderDetailsScreen() {
                       weight="bold"
                       variant={done ? 'primary' : 'tertiary'}
                     >
-                      {stage.label}
+                      {t(`status_${stage}`)}
                     </ThemedText>
+                    {i === 0 && (
+                      <ThemedText variant="tertiary" size="xs" style={{ marginTop: 2 }}>
+                        {new Date(order.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </ThemedText>
+                    )}
                   </View>
                 </View>
               );
@@ -142,7 +207,7 @@ export default function OrderDetailsScreen() {
 
         {/* Items List */}
         <ThemedText size="base" weight="extrabold" style={styles.sectionTitle}>
-          Items ({order.items.length})
+          {t('orderItems')} ({order.items.length})
         </ThemedText>
         <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           {order.items.map((item: any, index: number) => (
@@ -155,48 +220,82 @@ export default function OrderDetailsScreen() {
 
         {/* Payment Summary */}
         <ThemedText size="base" weight="extrabold" style={styles.sectionTitle}>
-          Payment Summary
+          {t('orderSummary')}
         </ThemedText>
         <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           <View style={styles.summaryRow}>
-            <ThemedText variant="tertiary" size="sm">Subtotal</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('subtotal')}</ThemedText>
             <ThemedText size="sm" weight="bold">{formatPrice(order.totalAmount)}</ThemedText>
           </View>
           <View style={styles.summaryRow}>
-            <ThemedText variant="tertiary" size="sm">Delivery Fee</ThemedText>
-            <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>FREE</ThemedText>
+            <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
+            <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>{t('free')}</ThemedText>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.gray[100] }]} />
           <View style={styles.summaryRow}>
-            <ThemedText size="base" weight="extrabold">Total</ThemedText>
+            <ThemedText size="base" weight="extrabold">{t('total')}</ThemedText>
             <ThemedText size="lg" weight="extrabold" style={{ color: theme.primary[500] }}>
               {formatPrice(order.totalAmount)}
             </ThemedText>
           </View>
+          <View style={[styles.summaryRow, { marginTop: 4 }]}>
+            <ThemedText variant="tertiary" size="sm">{isCard ? t('payWithCard') : t('cashOnDelivery')}</ThemedText>
+            {isCard && (
+              <ThemedText
+                size="sm"
+                weight="bold"
+                style={{
+                  color: order.paymentStatus === 'paid'
+                    ? theme.status.success
+                    : order.paymentStatus === 'failed' ? theme.status.error : theme.text.secondary,
+                }}
+              >
+                {order.paymentStatus === 'paid'
+                  ? t('paymentPaid')
+                  : order.paymentStatus === 'failed' ? t('paymentFailed') : t('paymentAwaiting')}
+              </ThemedText>
+            )}
+          </View>
         </View>
+
+        {needsPayment && (
+          <TouchableOpacity
+            style={[styles.payButton, { backgroundColor: theme.primary[500] }, startingPayment && { opacity: 0.7 }]}
+            onPress={handlePay}
+            disabled={startingPayment}
+          >
+            {startingPayment ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText variant="inverse" size="base" weight="extrabold">
+                {t('payNow')} · {formatPrice(order.totalAmount)}
+              </ThemedText>
+            )}
+          </TouchableOpacity>
+        )}
 
         {canCancel && (
           <View style={styles.cancelSection}>
             {!confirmingCancel ? (
               <TouchableOpacity onPress={() => setConfirmingCancel(true)} style={styles.cancelLink}>
                 <ThemedText size="sm" weight="bold" style={{ color: theme.status.error }}>
-                  {t('cancel')} order
+                  {t('cancelOrder')}
                 </ThemedText>
               </TouchableOpacity>
             ) : (
               <View style={[styles.cancelBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
                 <ThemedText size="sm" weight="extrabold" style={{ color: '#B91C1C' }}>
-                  Cancel this order?
+                  {t('cancelOrderQ')}
                 </ThemedText>
                 <ThemedText variant="tertiary" size="xs" style={{ marginTop: 4, lineHeight: 18 }}>
-                  Your order is currently being processed. Refunds may take up to 3 business days.
+                  {t('cancelOrderBody')}
                 </ThemedText>
                 <View style={styles.cancelActions}>
                   <TouchableOpacity
                     style={[styles.cancelActionBtn, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}
                     onPress={() => setConfirmingCancel(false)}
                   >
-                    <ThemedText size="xs" weight="extrabold">Keep order</ThemedText>
+                    <ThemedText size="xs" weight="extrabold">{t('keepOrder')}</ThemedText>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.cancelActionBtn, { backgroundColor: theme.status.error }]}
@@ -206,7 +305,7 @@ export default function OrderDetailsScreen() {
                     {isCancelling ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <ThemedText variant="inverse" size="xs" weight="extrabold">Yes, cancel</ThemedText>
+                      <ThemedText variant="inverse" size="xs" weight="extrabold">{t('yesCancel')}</ThemedText>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -226,6 +325,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
+  },
+  hero: {
+    alignItems: 'center',
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 18,
+    marginBottom: 16,
+  },
+  heroIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   card: {
     padding: 18,
@@ -285,6 +398,13 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 10,
+  },
+  payButton: {
+    marginTop: 16,
+    paddingVertical: 15,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   summaryRow: {
     flexDirection: 'row',

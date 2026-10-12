@@ -3,6 +3,7 @@ export const ROUTES = {
   // Auth
   LOGIN: '/LoginScreen',
   SIGN_UP: '/SignUpScreen',
+  FORGOT_PASSWORD: '/ForgotPasswordScreen',
   AUTH: '/(auth)',
   
   // Tabs
@@ -15,9 +16,13 @@ export const ROUTES = {
   EDIT_PROFILE: '/EditProfileScreen',
   FAVORITES: '/FavoritesScreen',
   ORDERS: '/OrdersScreen',
+  CHECKOUT: '/CheckoutScreen',
+  CATEGORY: '/CategoryScreen',
   PRODUCT_DETAILS: '/ProductDetailsScreen',
   ORDER_DETAILS: '/OrderDetailsScreen',
+  PAYMENT: '/PaymentScreen',
   ADDRESSES: '/AddressScreen',
   CHANGE_PASSWORD: '/ChangePasswordScreen',
   ABOUT: '/AboutScreen',
+  LEGAL: '/LegalScreen',
 } as const;

@@ -7,6 +7,26 @@ import { useCartContext } from '@/context/CartContext';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 
+const TAB_PILL_SIZE = 42;
+
+const TabPill = ({ focused, children }: { focused: boolean; children: React.ReactNode }) => {
+  const { theme } = useTheme();
+  return (
+    <ThemedView
+      style={{
+        width: TAB_PILL_SIZE,
+        height: TAB_PILL_SIZE,
+        borderRadius: TAB_PILL_SIZE / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: focused ? theme.primary[50] : 'transparent',
+      }}
+    >
+      {children}
+    </ThemedView>
+  );
+};
+
 const CartTabIcon = memo(function CartTabIcon({
   color,
   size,
@@ -63,6 +83,17 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      // bottom-tabs 7.10's own tab press calls navigate({ ...route }), which
+      // @react-navigation/routers 7.6 warns is deprecated. Do the navigation
+      // ourselves with the (name, params) form and cancel the default.
+      // ponytail: drop this once bottom-tabs >= 7.20 (needs native ^7.5) is installed.
+      screenListeners={({ navigation, route }) => ({
+        tabPress: (e) => {
+          if (navigation.isFocused()) return;
+          e.preventDefault();
+          navigation.navigate(route.name, route.params);
+        },
+      })}
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
@@ -80,11 +111,13 @@ export default function TabLayout() {
         options={{
           title: t('home'),
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={size}
-              color={color}
-            />
+            <TabPill focused={focused}>
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={size}
+                color={color}
+              />
+            </TabPill>
           ),
         }}
       />
@@ -93,7 +126,9 @@ export default function TabLayout() {
         options={{
           title: t('cart'),
           tabBarIcon: ({ focused, color, size }) => (
-            <CartTabIcon color={color} size={size} focused={focused} />
+            <TabPill focused={focused}>
+              <CartTabIcon color={color} size={size} focused={focused} />
+            </TabPill>
           ),
         }}
       />
@@ -102,11 +137,13 @@ export default function TabLayout() {
         options={{
           title: t('profile'),
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={size}
-              color={color}
-            />
+            <TabPill focused={focused}>
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={size}
+                color={color}
+              />
+            </TabPill>
           ),
         }}
       />

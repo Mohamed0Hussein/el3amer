@@ -5,16 +5,16 @@ import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { SupportedLanguage } from '@/localization/translations';
+import { deleteUser } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function SettingsScreen() {
   const { theme } = useTheme();
   const { logoutUser, user, isLoggingOut } = useAuth();
   const { language, setLanguage, t } = useLocalization();
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
 
   const languages: { code: SupportedLanguage; name: string; nativeName: string }[] = [
@@ -28,6 +28,25 @@ export default function SettingsScreen() {
   };
 
   const currentLanguage = languages.find(l => l.code === language);
+
+  const confirmDeleteAccount = () => {
+    if (!user) return;
+    Alert.alert(t('deleteAccountQ'), t('deleteAccountBody'), [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('deleteAccount'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteUser(String(user.id));
+            await logoutUser();
+          } catch (e: any) {
+            Alert.alert(t('error'), e?.response?.status === 409 ? t('deleteAccountActive') : e.message);
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <ThemedView variant="primary" style={{ flex: 1 }}>
@@ -59,22 +78,19 @@ export default function SettingsScreen() {
           >
             <ThemedText variant="secondary" weight="semibold" style={{ color: theme.status.error }}>{t('logout')}</ThemedText>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 }]}
+            onPress={confirmDeleteAccount}
+            disabled={isLoggingOut}
+          >
+            <ThemedText variant="secondary" weight="semibold" style={{ color: theme.status.error }}>{t('deleteAccount')}</ThemedText>
+          </TouchableOpacity>
         </ThemedView>
 
         <ThemedView variant="card" style={styles.card}>
           <ThemedText size="lg" weight="semibold" style={styles.sectionTitle}>{t('preferences')}</ThemedText>
-          <ThemedView variant="default" style={[styles.row, { backgroundColor: theme.gray[50] }]}
-          >
-            <ThemedText>{t('notifications')}</ThemedText>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: theme.gray[300], true: theme.primary[300] }}
-              thumbColor={notificationsEnabled ? theme.primary[500] : theme.gray[100]}
-            />
-          </ThemedView>
-          <TouchableOpacity 
-            style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 }]}
+          <TouchableOpacity
+            style={[styles.row, { backgroundColor: theme.gray[50] }]}
             onPress={() => setLanguageModalVisible(true)}
           >
             <ThemedText>{t('language')}</ThemedText>
@@ -91,6 +107,16 @@ export default function SettingsScreen() {
             <ThemedText>{t('version')}</ThemedText>
             <ThemedText variant="tertiary">1.0.0</ThemedText>
           </ThemedView>
+          {(['privacy', 'terms'] as const).map((doc) => (
+            <TouchableOpacity
+              key={doc}
+              style={[styles.row, { backgroundColor: theme.gray[50], marginTop: 10 }]}
+              onPress={() => router.push({ pathname: ROUTES.LEGAL, params: { doc } })}
+            >
+              <ThemedText>{doc === 'privacy' ? t('privacyPolicy') : t('termsOfService')}</ThemedText>
+              <Ionicons name="chevron-forward" size={18} color={theme.gray[400]} />
+            </TouchableOpacity>
+          ))}
         </ThemedView>
       </ScrollView>
 

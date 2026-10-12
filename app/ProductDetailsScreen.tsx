@@ -7,11 +7,14 @@ import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useTheme } from '@/hooks/useTheme';
+import { getProducts } from '@/services/products';
+import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProductDetailsScreen() {
@@ -27,6 +30,18 @@ export default function ProductDetailsScreen() {
 
   const isFav = favorites.includes(product.id);
 
+  // Same shared cache + client-side filter as CategoryScreen (backend's
+  // ?category= filter breaks on names containing '&').
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => getProducts(undefined, undefined, true),
+  });
+
+  const relatedProducts = useMemo(
+    () => allProducts.filter((p: Product) => p.category === product.category && p.id !== product.id).slice(0, 6),
+    [allProducts, product.category, product.id],
+  );
+
   const imageUrl = product.image?.startsWith('http')
     ? product.image
     : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
@@ -36,7 +51,7 @@ export default function ProductDetailsScreen() {
   };
 
   const handleIncrease = () => {
-    setQuantity(quantity + 1);
+    if (product && quantity < product.stock) setQuantity(quantity + 1);
   };
 
   const handleAddToCart = () => {
@@ -48,7 +63,6 @@ export default function ProductDetailsScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={[styles.header, { top: insets.top + 12 }]}>
@@ -82,7 +96,7 @@ export default function ProductDetailsScreen() {
             <View style={[styles.pill, { backgroundColor: '#F0FDF4' }]}>
               <Ionicons name="leaf-outline" size={13} color={theme.status.success} />
               <ThemedText size="xs" weight="bold" style={{ color: theme.status.success }}>
-                Fresh
+                {t('fresh')}
               </ThemedText>
             </View>
             <ThemedText variant="tertiary" size="xs" style={{ textTransform: 'uppercase' }}>
@@ -94,15 +108,15 @@ export default function ProductDetailsScreen() {
             {product.name}
           </ThemedText>
 
-          <View style={styles.ratingRow}>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={14} color="#F59E0B" />
-              <ThemedText size="sm" weight="bold">4.8</ThemedText>
+          {product.stock <= 5 && (
+            <View style={styles.ratingRow}>
+              <View style={[styles.pill, { backgroundColor: '#FEFCE8' }]}>
+                <ThemedText size="xs" weight="bold" style={{ color: '#A16207' }}>
+                  {product.stock <= 0 ? t('outOfStock') : t('onlyLeft').replace('{n}', String(product.stock))}
+                </ThemedText>
+              </View>
             </View>
-            <ThemedText variant="tertiary" size="xs">
-              (312 reviews)
-            </ThemedText>
-          </View>
+          )}
 
           <View style={styles.priceRow}>
             <ThemedText size="2xl" weight="extrabold" style={{ color: theme.primary[500] }}>
@@ -113,37 +127,59 @@ export default function ProductDetailsScreen() {
             </ThemedText>
           </View>
 
-          <ThemedText variant="secondary" size="sm" style={styles.description}>
-            Fresh and high-quality {product.name.toLowerCase()} delivered directly to your doorstep. Perfect for your daily needs and healthy lifestyle.
-          </ThemedText>
-
-          <View style={styles.quantityContainer}>
-            <ThemedText variant="primary" size="sm" weight="bold">
-              Quantity
-            </ThemedText>
-            <View style={[styles.quantityPicker, { borderColor: theme.gray[200] }]}>
-              <TouchableOpacity onPress={handleDecrease} style={styles.quantityBtn}>
-                <ThemedText size="lg" weight="extrabold" style={{ color: theme.primary[500] }}>−</ThemedText>
-              </TouchableOpacity>
-              <ThemedText size="base" weight="extrabold" style={styles.quantityNum}>
-                {quantity}
+          {!!product.description && (
+            <>
+              <ThemedText size="sm" weight="extrabold" style={styles.aboutTitle}>
+                {t('aboutProduct')}
               </ThemedText>
-              <TouchableOpacity onPress={handleIncrease} style={styles.quantityBtn}>
-                <ThemedText size="lg" weight="extrabold" style={{ color: theme.primary[500] }}>+</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
+              <ThemedText variant="secondary" size="sm" style={styles.description}>
+                {product.description}
+              </ThemedText>
+            </>
+          )}
 
           <View style={[styles.deliveryCard, { backgroundColor: theme.primary[50] }]}>
             <Ionicons name="time-outline" size={20} color={theme.primary[700]} />
             <View style={{ flex: 1 }}>
-              <ThemedText size="sm" weight="bold">Delivery in 30–45 min</ThemedText>
+              <ThemedText size="sm" weight="bold">{t('deliveryEta')}</ThemedText>
               <ThemedText size="xs" style={{ color: theme.primary[700], marginTop: 1 }}>
-                Free for orders over {formatPrice(250)}
+                {t('freeDeliveryAll')}
               </ThemedText>
             </View>
           </View>
         </View>
+
+        {relatedProducts.length > 0 && (
+          <View style={styles.relatedSection}>
+            <ThemedText variant="primary" size="base" weight="extrabold" style={styles.relatedTitle}>
+              {t('youMayLike')}
+            </ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedContent}>
+              {relatedProducts.map((p: Product) => {
+                const relatedImageUrl = p.image?.startsWith('http')
+                  ? p.image
+                  : `${env.apiOrigin}${p.image?.startsWith('/') ? '' : '/'}${p.image}`;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.relatedCard}
+                    onPress={() => router.push({ pathname: '/ProductDetailsScreen', params: { product: JSON.stringify(p) } })}
+                  >
+                    <View style={[styles.relatedThumb, { backgroundColor: theme.gray[100] }]}>
+                      <Image source={{ uri: relatedImageUrl }} style={styles.relatedThumbImage} contentFit="contain" />
+                    </View>
+                    <ThemedText size="xs" weight="bold" numberOfLines={1} style={{ marginTop: 8 }}>
+                      {p.name}
+                    </ThemedText>
+                    <ThemedText size="sm" weight="extrabold" style={{ color: theme.primary[500], marginTop: 2 }}>
+                      {formatPrice(p.price)}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
       </ScrollView>
 
       {/* Footer / Add to Cart */}
@@ -162,6 +198,7 @@ export default function ProductDetailsScreen() {
         <TouchableOpacity
           style={[styles.addToCartBtn, { backgroundColor: theme.primary[500], shadowColor: theme.primary[700] }]}
           onPress={handleAddToCart}
+          disabled={product.stock <= 0}
         >
           <ThemedText variant="inverse" weight="extrabold" size="base">
             {t('addToCart')}
@@ -234,11 +271,6 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 8,
   },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -247,33 +279,12 @@ const styles = StyleSheet.create({
   unitText: {
     marginLeft: 6,
   },
+  aboutTitle: {
+    marginTop: 20,
+  },
   description: {
     lineHeight: 22,
-    marginTop: 16,
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 22,
-  },
-  quantityPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    padding: 4,
-  },
-  quantityBtn: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quantityNum: {
-    marginHorizontal: 10,
-    minWidth: 16,
-    textAlign: 'center',
+    marginTop: 8,
   },
   deliveryCard: {
     flexDirection: 'row',
@@ -282,6 +293,32 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     marginTop: 22,
+  },
+  relatedSection: {
+    paddingTop: 24,
+  },
+  relatedTitle: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  relatedContent: {
+    paddingHorizontal: 20,
+    gap: 12,
+    paddingBottom: 4,
+  },
+  relatedCard: {
+    width: 126,
+  },
+  relatedThumb: {
+    height: 88,
+    borderRadius: 14,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  relatedThumbImage: {
+    width: '100%',
+    height: '100%',
   },
   footer: {
     flexDirection: 'row',

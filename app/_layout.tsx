@@ -8,7 +8,9 @@ import { FavoritesProvider } from "@/context/FavoritesContext";
 import { LocalizationProvider, useLocalization } from "@/context/LocalizationContext";
 import { useTheme } from "@/hooks/useTheme";
 import { setupGlobalErrorHandler } from "@/lib/globalErrorHandler";
+import { useOrderNotifications } from "@/lib/notifications";
 import { queryClient } from '@/lib/queryClient';
+import { getUserInfo } from '@/services/user';
 import {
   Almarai_300Light,
   Almarai_400Regular,
@@ -26,7 +28,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import React, { useEffect } from "react";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, StatusBar, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 setupGlobalErrorHandler();
 
@@ -37,8 +40,9 @@ function useProtectedRoute(isAuthenticated: boolean, isHydrating: boolean) {
     if (isHydrating) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isPublic = segments[0] === 'LegalScreen';
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !isPublic) {
       router.replace('/LoginScreen');
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');
@@ -47,9 +51,24 @@ function useProtectedRoute(isAuthenticated: boolean, isHydrating: boolean) {
 }
 
 function RootNavigator() {
-  const { isAuthenticated, isHydrating } = useAuth();
-  
+  const { user, isAuthenticated, isHydrating } = useAuth();
+  const { theme, isDark } = useTheme();
+  const { language } = useLocalization();
+  const insets = useSafeAreaInsets();
+
+  useOrderNotifications(user?.id, language);
+
   useProtectedRoute(isAuthenticated, isHydrating);
+
+  // Warm the profile cache as soon as someone signs in, so Edit Profile,
+  // Checkout and the Home address bar open with data already loaded.
+  useEffect(() => {
+    if (!user) return;
+    queryClient.prefetchQuery({
+      queryKey: ['me', user.id],
+      queryFn: () => getUserInfo(String(user.id)),
+    });
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isHydrating) {
     return <LoadingScreen />;
@@ -57,6 +76,7 @@ function RootNavigator() {
 
   return (
     <>
+      <StatusBar barStyle="light-content" />
       <NetworkBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -65,12 +85,25 @@ function RootNavigator() {
         <Stack.Screen name="EditProfileScreen" />
         <Stack.Screen name="FavoritesScreen" />
         <Stack.Screen name="OrdersScreen" />
+        <Stack.Screen name="CheckoutScreen" />
+        <Stack.Screen name="CategoryScreen" />
         <Stack.Screen name="ProductDetailsScreen" />
         <Stack.Screen name="OrderDetailsScreen" />
+        <Stack.Screen name="PaymentScreen" />
         <Stack.Screen name="AddressScreen" />
         <Stack.Screen name="ChangePasswordScreen" />
         <Stack.Screen name="AboutScreen" />
+        <Stack.Screen name="LegalScreen" />
       </Stack>
+      {/* The app draws edge-to-edge, so the status bar has no background of its
+          own (StatusBar backgroundColor is ignored); paint one over the top inset. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
+          backgroundColor: isDark ? theme.primary[400] : theme.primary[500],
+        }}
+      />
     </>
   );
 }

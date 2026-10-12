@@ -4,11 +4,10 @@ import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
-import { useTheme } from '@/hooks/useTheme';
 import { changePassword } from '@/services/auth';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StatusBar, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 export default function ChangePasswordScreen() {
   const [currentPass, setCurrentPass] = useState('');
@@ -16,7 +15,6 @@ export default function ChangePasswordScreen() {
   const [confirmPass, setConfirmPass] = useState('')
   const [isLoading, setIsLoading] = useState(false);
 
-  const { theme } = useTheme();
   const { t } = useLocalization();
   const { user } = useAuth();
 
@@ -51,7 +49,6 @@ export default function ChangePasswordScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.background.primary} />
 
       <ScreenHeader title={t('changePassword')} />
 
