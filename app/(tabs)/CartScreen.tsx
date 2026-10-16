@@ -2,7 +2,8 @@ import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { env } from '@/config/env';
-import { formatUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, maxQuantity, priceWithUnit } from '@/constants/format';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
@@ -32,6 +33,8 @@ const Cart = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const formatPrice = useCurrency();
+  const fee = useStoreSettings()?.deliveryFee;
+  const total = cartTotal + (fee ?? 0);
 
   // The backend requires a non-null shippingAddress on every order — read it
   // fresh (AuthContext's cached user can be stale after an EditProfileScreen edit).
@@ -110,13 +113,15 @@ const Cart = () => {
                 </View>
                 <View style={styles.summaryRow}>
                   <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
-                  <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>{t('free')}</ThemedText>
+                  <ThemedText size="sm" weight="bold" style={fee === 0 ? { color: theme.status.success } : undefined}>
+                    {fee === undefined ? '…' : fee > 0 ? formatPrice(fee) : t('free')}
+                  </ThemedText>
                 </View>
                 <View style={[styles.summaryDivider, { backgroundColor: theme.gray[100] }]} />
                 <View style={styles.summaryRow}>
                   <ThemedText size="base" weight="extrabold">{t('total')}</ThemedText>
                   <ThemedText size="lg" weight="extrabold" style={{ color: theme.primary[500] }}>
-                    {formatPrice(cartTotal)}
+                    {formatPrice(total)}
                   </ThemedText>
                 </View>
               </View>
@@ -141,7 +146,7 @@ const Cart = () => {
                         {item.name}
                       </ThemedText>
                       <ThemedText variant="tertiary" size="xs" style={styles.cartItemUnit}>
-                        {formatUnit(item.unit)} · {formatPrice(item.price)}
+                        {formatUnit(item.unit)} · {priceWithUnit(formatPrice(item.price), item.unit)}
                       </ThemedText>
                     </View>
                     <TouchableOpacity onPress={() => removeFromCart(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -159,19 +164,19 @@ const Cart = () => {
                         <ThemedText variant="inverse" size="base" weight="extrabold">−</ThemedText>
                       </TouchableOpacity>
                       <ThemedText variant="inverse" size="sm" weight="bold" style={styles.stepperValue}>
-                        {item.quantity}
+                        {formatQuantity(item.quantity, item.unit)}
                       </ThemedText>
                       <TouchableOpacity
-                        style={[styles.stepperBtn, item.quantity >= item.stock && { opacity: 0.4 }]}
+                        style={[styles.stepperBtn, item.quantity >= maxQuantity(item) && { opacity: 0.4 }]}
                         onPress={() => updateCartQuantity(item.id, 1)}
-                        disabled={item.quantity >= item.stock}
+                        disabled={item.quantity >= maxQuantity(item)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <ThemedText variant="inverse" size="base" weight="extrabold">+</ThemedText>
                       </TouchableOpacity>
                     </View>
                     <ThemedText variant="primary" size="base" weight="extrabold">
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(lineTotal(item.price, item.quantity))}
                     </ThemedText>
                   </View>
                 </View>
@@ -192,7 +197,7 @@ const Cart = () => {
                 {t('proceedToCheckout')}
               </ThemedText>
               <ThemedText variant="inverse" size="base" weight="bold" style={styles.checkoutTotal}>
-                · {formatPrice(cartTotal)}
+                · {formatPrice(total)}
               </ThemedText>
             </TouchableOpacity>
           </View>

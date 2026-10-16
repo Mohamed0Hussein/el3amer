@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "952185008484",
+    "project_id": "el3amer-cba15",
+    "storage_bucket": "el3amer-cba15.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:952185008484:android:f6e088f39fd39d38d2ca71",
+        "android_client_info": {
+          "package_name": "com.el3amer.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnK6SxcWM-9Z08_mAtCd3LnvFIOmF7ztk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -9,8 +9,11 @@ export interface OrderLineItem {
   unit: string;
   image?: string;
   stock: number;
+  step?: number;
   quantity: number;
   price: number;
+  // The store found it missing while packing.
+  unavailable?: boolean;
 }
 
 export interface Order {
@@ -18,7 +21,10 @@ export interface Order {
   userId: number;
   items: OrderLineItem[];
   totalAmount: number;
+  deliveryFee?: number;
   status: OrderStatus;
+  // Set while the customer is asked what to do about unavailable items.
+  decisionRequestedAt?: string | null;
   shippingAddress?: string;
   paymentMethod?: 'cash' | 'card';
   paymentStatus?: 'pending' | 'paid' | 'failed';

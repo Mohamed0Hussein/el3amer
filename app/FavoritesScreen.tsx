@@ -6,10 +6,9 @@ import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
-import { getProducts } from '@/services/products';
+import { useProducts } from '@/hooks/useProducts';
 import { Product } from '@/types/Product';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import React, { useMemo } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 
@@ -18,10 +17,8 @@ export default function FavoritesScreen() {
   const { t } = useLocalization();
   
 
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts('all'),
-  });
+  // Only the favorited products, not the whole catalogue.
+  const { products, isLoading } = useProducts({ ids: favorites, limit: 100 }, favorites.length > 0);
 
   const favoriteProducts = useMemo(() => {
     return products.filter((p: Product) => favorites.includes(p.id));

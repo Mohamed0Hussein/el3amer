@@ -1,16 +1,16 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { env } from '@/config/env';
-import { formatUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, maxQuantity, stepOf } from '@/constants/format';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useProducts } from '@/hooks/useProducts';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { useTheme } from '@/hooks/useTheme';
-import { getProducts } from '@/services/products';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -24,22 +24,22 @@ export default function ProductDetailsScreen() {
   const { t } = useLocalization();
   const { addToCart } = useCartContext();
   const { favorites, toggleFavorite } = useFavorites();
-  const [quantity, setQuantity] = useState(1);
+  // Counted in steps: 1 piece, or e.g. 0.25 kg for products sold by weight.
+  const [steps, setSteps] = useState(1);
   const insets = useSafeAreaInsets();
   const formatPrice = useCurrency();
+  const settings = useStoreSettings();
 
   const isFav = favorites.includes(product.id);
+  const step = stepOf(product);
+  const amount = steps * step;
+  const maxSteps = Math.round(maxQuantity(product) / step);
+  const outOfStock = maxSteps <= 0;
 
-  // Same shared cache + client-side filter as CategoryScreen (backend's
-  // ?category= filter breaks on names containing '&').
-  const { data: allProducts = [] } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts(undefined, undefined, true),
-  });
-
+  const { products: sameCategory } = useProducts({ category: product.category, limit: 7 }, !!product.category);
   const relatedProducts = useMemo(
-    () => allProducts.filter((p: Product) => p.category === product.category && p.id !== product.id).slice(0, 6),
-    [allProducts, product.category, product.id],
+    () => sameCategory.filter((p: Product) => p.id !== product.id).slice(0, 6),
+    [sameCategory, product.id],
   );
 
   const imageUrl = product.image?.startsWith('http')
@@ -47,15 +47,15 @@ export default function ProductDetailsScreen() {
     : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
 
   const handleDecrease = () => {
-    if (quantity > 1) setQuantity(quantity - 1);
+    if (steps > 1) setSteps(steps - 1);
   };
 
   const handleIncrease = () => {
-    if (product && quantity < product.stock) setQuantity(quantity + 1);
+    if (steps < maxSteps) setSteps(steps + 1);
   };
 
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
+    for (let i = 0; i < steps; i++) {
       addToCart(product);
     }
     router.back();
@@ -112,7 +112,7 @@ export default function ProductDetailsScreen() {
             <View style={styles.ratingRow}>
               <View style={[styles.pill, { backgroundColor: '#FEFCE8' }]}>
                 <ThemedText size="xs" weight="bold" style={{ color: '#A16207' }}>
-                  {product.stock <= 0 ? t('outOfStock') : t('onlyLeft').replace('{n}', String(product.stock))}
+                  {outOfStock ? t('outOfStock') : t('onlyLeft').replace('{n}', formatQuantity(product.stock, product.unit))}
                 </ThemedText>
               </View>
             </View>
@@ -141,10 +141,16 @@ export default function ProductDetailsScreen() {
           <View style={[styles.deliveryCard, { backgroundColor: theme.primary[50] }]}>
             <Ionicons name="time-outline" size={20} color={theme.primary[700]} />
             <View style={{ flex: 1 }}>
-              <ThemedText size="sm" weight="bold">{t('deliveryEta')}</ThemedText>
-              <ThemedText size="xs" style={{ color: theme.primary[700], marginTop: 1 }}>
-                {t('freeDeliveryAll')}
+              <ThemedText size="sm" weight="bold">
+                {t('deliveryEta').replace('{eta}', String(settings?.etaMinutes ?? 30))}
               </ThemedText>
+              {settings && (
+                <ThemedText size="xs" style={{ color: theme.primary[700], marginTop: 1 }}>
+                  {settings.deliveryFee > 0
+                    ? t('deliveryFeeAll').replace('{fee}', formatPrice(settings.deliveryFee))
+                    : t('freeDeliveryAll')}
+                </ThemedText>
+              )}
             </View>
           </View>
         </View>
@@ -188,23 +194,28 @@ export default function ProductDetailsScreen() {
           <TouchableOpacity style={styles.stepperBtn} onPress={handleDecrease} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <ThemedText variant="inverse" size="lg" weight="extrabold">−</ThemedText>
           </TouchableOpacity>
-          <ThemedText variant="inverse" size="base" weight="extrabold" style={styles.stepperValue}>
-            {quantity}
+          <ThemedText variant="inverse" size="base" weight="extrabold" style={styles.stepperValue} numberOfLines={1}>
+            {formatQuantity(amount, product.unit)}
           </ThemedText>
-          <TouchableOpacity style={styles.stepperBtn} onPress={handleIncrease} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity
+            style={[styles.stepperBtn, steps >= maxSteps && { opacity: 0.4 }]}
+            onPress={handleIncrease}
+            disabled={steps >= maxSteps}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <ThemedText variant="inverse" size="lg" weight="extrabold">+</ThemedText>
           </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={[styles.addToCartBtn, { backgroundColor: theme.primary[500], shadowColor: theme.primary[700] }]}
           onPress={handleAddToCart}
-          disabled={product.stock <= 0}
+          disabled={outOfStock}
         >
           <ThemedText variant="inverse" weight="extrabold" size="base">
             {t('addToCart')}
           </ThemedText>
           <ThemedText variant="inverse" weight="bold" size="base" style={{ marginLeft: 4 }}>
-            · {formatPrice(product.price * quantity)}
+            · {formatPrice(lineTotal(product.price, amount))}
           </ThemedText>
         </TouchableOpacity>
       </View>

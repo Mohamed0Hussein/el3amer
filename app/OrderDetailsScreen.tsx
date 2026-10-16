@@ -2,13 +2,14 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { env } from '@/config/env';
-import { formatUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, priceWithUnit } from '@/constants/format';
 import { ROUTES } from '@/constants/routes';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { queryClient } from '@/lib/queryClient';
-import { cancelOrder, getOrderById, payOrder } from '@/services/orders';
+import { cancelOrder, decideOrder, getOrderById, payOrder } from '@/services/orders';
 import { Order } from '@/types/Order';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -52,10 +53,17 @@ export default function OrderDetailsScreen() {
   const formatPrice = useCurrency();
   const [isCancelling, setIsCancelling] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [deciding, setDeciding] = useState<'continue' | 'cancel' | null>(null);
+  const settings = useStoreSettings();
 
   const isCancelled = order.status === 'cancelled';
   const currentStage = isCancelled ? -1 : STAGES.indexOf(order.status as (typeof STAGES)[number]);
-  const canCancel = order.status === 'pending' || order.status === 'confirmed';
+  const awaitingDecision = !!order.decisionRequestedAt && !isCancelled;
+  const canCancel = (order.status === 'pending' || order.status === 'confirmed') && !awaitingDecision;
+  const deliveryFee = order.deliveryFee ?? 0;
+  const unavailableItems = order.items.filter((item) => item.unavailable);
+  const totalWithoutMissing = order.totalAmount -
+    unavailableItems.reduce((sum, item) => sum + lineTotal(item.price, item.quantity), 0);
   const isCard = order.paymentMethod === 'card';
   const needsPayment = isCard && order.paymentStatus !== 'paid' && order.status === 'pending';
   const [startingPayment, setStartingPayment] = useState(false);
@@ -69,6 +77,19 @@ export default function OrderDetailsScreen() {
       Alert.alert(t('error'), t('paymentStartFailed'));
     } finally {
       setStartingPayment(false);
+    }
+  };
+
+  const handleDecision = async (action: 'continue' | 'cancel') => {
+    setDeciding(action);
+    try {
+      const updated = await decideOrder(order.id, action);
+      queryClient.setQueryData(['order', order.id], updated);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    } catch {
+      Alert.alert(t('error'), t('orderFailedMessage'));
+    } finally {
+      setDeciding(null);
     }
   };
 
@@ -92,7 +113,7 @@ export default function OrderDetailsScreen() {
   };
 
   const OrderItem = ({ item }: { item: any }) => (
-    <View style={styles.itemRow}>
+    <View style={[styles.itemRow, item.unavailable && { opacity: 0.5 }]}>
       <View style={[styles.emojiContainer, { backgroundColor: theme.gray[50] }]}>
         <Image
           source={{
@@ -107,11 +128,16 @@ export default function OrderDetailsScreen() {
       <View style={styles.itemInfo}>
         <ThemedText size="sm" weight="bold" numberOfLines={1}>{item.name}</ThemedText>
         <ThemedText variant="tertiary" size="xs" style={{ marginTop: 2 }}>
-          {item.quantity} × {formatPrice(item.price)} · {formatUnit(item.unit)}
+          {formatQuantity(item.quantity, item.unit)} × {priceWithUnit(formatPrice(item.price), item.unit)} · {formatUnit(item.unit)}
         </ThemedText>
+        {item.unavailable && (
+          <ThemedText size="xs" weight="bold" style={{ color: theme.status.error, marginTop: 2 }}>
+            {t('unavailable')}
+          </ThemedText>
+        )}
       </View>
       <ThemedText size="sm" weight="bold">
-        {formatPrice(item.quantity * item.price)}
+        {formatPrice(lineTotal(item.price, item.quantity))}
       </ThemedText>
     </View>
   );
@@ -139,10 +165,55 @@ export default function OrderDetailsScreen() {
           </ThemedText>
           {!isCancelled && order.status !== 'delivered' && (
             <ThemedText variant="tertiary" size="xs" style={{ marginTop: 4 }}>
-              {t('deliveryEta')}
+              {t('deliveryEta').replace('{eta}', String(settings?.etaMinutes ?? 30))}
             </ThemedText>
           )}
         </View>
+
+        {/* The store couldn't find some items: the customer decides */}
+        {awaitingDecision && (
+          <View style={[styles.decisionBox, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+            <ThemedText size="sm" weight="extrabold" style={{ color: '#A16207' }}>
+              {t('itemsUnavailableTitle')}
+            </ThemedText>
+            <ThemedText variant="secondary" size="xs" style={{ marginTop: 4, lineHeight: 18 }}>
+              {t('itemsUnavailableBody')}
+            </ThemedText>
+            {unavailableItems.map((item) => (
+              <ThemedText key={item.id} size="sm" weight="bold" style={{ marginTop: 6 }}>
+                • {item.name} ({formatQuantity(item.quantity, item.unit)})
+              </ThemedText>
+            ))}
+            <View style={styles.decisionActions}>
+              <TouchableOpacity
+                style={[styles.decisionBtn, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}
+                onPress={() => handleDecision('cancel')}
+                disabled={!!deciding}
+              >
+                {deciding === 'cancel' ? (
+                  <ActivityIndicator size="small" color={theme.status.error} />
+                ) : (
+                  <ThemedText size="xs" weight="extrabold" style={{ color: theme.status.error }}>{t('cancelOrder')}</ThemedText>
+                )}
+              </TouchableOpacity>
+              {unavailableItems.length < order.items.length && (
+                <TouchableOpacity
+                  style={[styles.decisionBtn, { backgroundColor: theme.primary[500], borderColor: theme.primary[500] }]}
+                  onPress={() => handleDecision('continue')}
+                  disabled={!!deciding}
+                >
+                  {deciding === 'continue' ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <ThemedText variant="inverse" size="xs" weight="extrabold" numberOfLines={1}>
+                      {t('continueWithout')} · {formatPrice(totalWithoutMissing)}
+                    </ThemedText>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Status timeline */}
         <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
@@ -225,11 +296,13 @@ export default function OrderDetailsScreen() {
         <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           <View style={styles.summaryRow}>
             <ThemedText variant="tertiary" size="sm">{t('subtotal')}</ThemedText>
-            <ThemedText size="sm" weight="bold">{formatPrice(order.totalAmount)}</ThemedText>
+            <ThemedText size="sm" weight="bold">{formatPrice(order.totalAmount - deliveryFee)}</ThemedText>
           </View>
           <View style={styles.summaryRow}>
             <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
-            <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>{t('free')}</ThemedText>
+            <ThemedText size="sm" weight="bold" style={deliveryFee === 0 ? { color: theme.status.success } : undefined}>
+              {deliveryFee > 0 ? formatPrice(deliveryFee) : t('free')}
+            </ThemedText>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.gray[100] }]} />
           <View style={styles.summaryRow}>
@@ -398,6 +471,26 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 10,
+  },
+  decisionBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 14,
+  },
+  decisionActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  decisionBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   payButton: {
     marginTop: 16,
