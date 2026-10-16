@@ -8,6 +8,8 @@ export interface Product {
   category: string;
   price: number;
   unit: string;
+  // Amount per +/- tap for KG / G products (e.g. 0.25 kg); 1 for counted ones.
+  step?: number;
   image?: string;
   stock: number;
   isActive?: boolean;

@@ -2,6 +2,7 @@ import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { CartItem } from '@/types/CardItem';
 import { Product } from '@/types/Product';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clampQuantity, isWeighted, lineTotal, maxQuantity, stepOf } from '@/constants/format';
 import { useAuth } from '@/context/AuthContext';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -53,7 +54,6 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
     }
   }, [cart, isHydrated]);
 
-  // Quantities never go above the stock we last saw; the backend re-checks at checkout.
   // Signing out empties the cart so the next account on this phone starts clean.
   const { user } = useAuth();
   const prevUserId = useRef(user?.id);
@@ -62,22 +62,25 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
     prevUserId.current = user?.id;
   }, [user]);
 
+  // Adds one step (1 piece, or e.g. 0.25 kg) and never goes above the stock we
+  // last saw; the backend re-checks at checkout.
   const addToCart = useCallback((product: Product) => {
-    if (product.stock <= 0) return;
+    if (maxQuantity(product) <= 0) return;
     setCart(prev => {
       const existing = prev.find(p => p.id === product.id);
       return existing
         ? prev.map(p => p.id === product.id
-            ? { ...p, stock: product.stock, quantity: Math.min(p.quantity + 1, product.stock) }
+            ? { ...p, ...product, quantity: clampQuantity(p.quantity + stepOf(product), product) }
             : p)
-        : [...prev, { ...product, quantity: 1 }];
+        : [...prev, { ...product, quantity: clampQuantity(stepOf(product), product) }];
     });
   }, []);
 
+  // change is +1 / -1 steps.
   const updateCartQuantity = useCallback((id: number, change: number) => {
     setCart(prev =>
       prev
-        .map(p => p.id === id ? { ...p, quantity: Math.min(p.quantity + change, p.stock) } : p)
+        .map(p => p.id === id ? { ...p, quantity: clampQuantity(p.quantity + change * stepOf(p), p) } : p)
         .filter(p => p.quantity > 0),
     );
   }, []);
@@ -89,13 +92,14 @@ export const CartContextProvider = ({ children }: { children: React.ReactNode })
 
   const clearCart = useCallback(() => setCart([]), []);
 
-  const cartTotal = useMemo(() => 
-    cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+  const cartTotal = useMemo(() =>
+    cart.reduce((sum, item) => sum + lineTotal(item.price, item.quantity), 0),
     [cart]
   );
 
-  const cartItemCount = useMemo(() => 
-    cart.reduce((sum, item) => sum + item.quantity, 0),
+  // A weighed product counts as one item, whatever its weight.
+  const cartItemCount = useMemo(() =>
+    cart.reduce((sum, item) => sum + (isWeighted(item.unit) ? 1 : item.quantity), 0),
     [cart]
   );
 

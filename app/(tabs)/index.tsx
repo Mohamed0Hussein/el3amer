@@ -9,20 +9,22 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { getCategories } from '@/services/categories';
 import { getOrders } from '@/services/orders';
-import { getProducts } from '@/services/products';
 import { getUserInfo } from '@/services/user';
 import { ROUTES } from '@/constants/routes';
 import { router } from 'expo-router';
 import { useCartContext } from '@/context/CartContext';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useProducts } from '@/hooks/useProducts';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { Category } from '@/types/Category';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { env } from '@/config/env';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Platform,
   RefreshControl,
@@ -57,10 +59,17 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [bannerIndex, setBannerIndex] = useState(0);
 
-  const { data: products = [], isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts(undefined, undefined, true),
-  });
+  // Search runs on the server (the catalogue is too big to filter here), so
+  // wait for a pause in typing before asking.
+  const [search, setSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { products, total, isLoading, refetch, isRefetching, loadMore, isFetchingNextPage } =
+    useProducts({ search, sort: sortBy });
+  const settings = useStoreSettings();
 
   const { data: fetchedCategories = [] } = useQuery({
     queryKey: ['categories'],
@@ -99,11 +108,21 @@ export default function HomeScreen() {
 
   const banners = useMemo(
     () => [
-      { eyebrow: t('bannerEyebrow1'), title: t('bannerTitle1'), sub: t('bannerSub1') },
-      { eyebrow: t('bannerEyebrow2'), title: t('bannerTitle2'), sub: t('bannerSub2') },
+      {
+        eyebrow: t('bannerEyebrow1'),
+        title: t('bannerTitle1').replace('{eta}', String(settings?.etaMinutes ?? 30)),
+        sub: t('bannerSub1'),
+      },
+      {
+        eyebrow: t('bannerEyebrow2'),
+        title: settings?.deliveryFee
+          ? t('bannerTitle2').replace('{fee}', formatPrice(settings.deliveryFee))
+          : t('freeDeliveryAll'),
+        sub: t('bannerSub2'),
+      },
       { eyebrow: t('bannerEyebrow3'), title: t('bannerTitle3'), sub: t('bannerSub3') },
     ],
-    [t],
+    [t, settings, formatPrice],
   );
 
   const greeting = useMemo(() => {
@@ -114,21 +133,6 @@ export default function HomeScreen() {
   }, [t]);
 
   const firstName = user?.fullName?.split(' ')[0];
-
-  const filteredProducts = useMemo(() => {
-    const result = products.filter((product: Product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-
-    return [...result].sort((a, b) => {
-      if (sortBy === 'name') {
-        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-      }
-      if (sortBy === 'price_low') return a.price - b.price;
-      if (sortBy === 'price_high') return b.price - a.price;
-      return 0;
-    });
-  }, [products, searchQuery, sortBy]);
 
   const renderProduct = useCallback(
     ({ item }: { item: Product }) => <ProductCard product={item} />,
@@ -179,6 +183,16 @@ export default function HomeScreen() {
           )}
         </View>
       </View>
+
+      {settings?.isOpen === false && (
+        <View style={[styles.closedNotice, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+          <Ionicons name="moon-outline" size={18} color="#B91C1C" />
+          <View style={{ flex: 1 }}>
+            <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>{t('storeClosedTitle')}</ThemedText>
+            <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>{t('storeClosedBody')}</ThemedText>
+          </View>
+        </View>
+      )}
 
       {/* Promo banner */}
       <View style={styles.bannerWrap}>
@@ -298,7 +312,7 @@ export default function HomeScreen() {
       {/* Result count & sort */}
       <View style={styles.sortContainer}>
         <ThemedText variant="tertiary" size="sm">
-          {filteredProducts.length} {t('itemsCount')}
+          {total} {t('itemsCount')}
         </ThemedText>
         <View style={[styles.sortButtons, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           <TouchableOpacity
@@ -336,7 +350,7 @@ export default function HomeScreen() {
         </ScrollView>
       ) : (
         <FlatList
-          data={filteredProducts}
+          data={products}
           renderItem={renderProduct}
           keyExtractor={keyExtractor}
           numColumns={2}
@@ -348,6 +362,11 @@ export default function HomeScreen() {
           maxToRenderPerBatch={10}
           updateCellsBatchingPeriod={50}
           ListHeaderComponent={listHeader}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage ? <ActivityIndicator style={styles.pageSpinner} color={theme.primary[500]} /> : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -374,6 +393,18 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  closedNotice: {
+    flexDirection: 'row',
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    marginHorizontal: tokens.space.xl,
+    marginBottom: 12,
+  },
+  pageSpinner: {
+    marginVertical: 16,
   },
   header: {
     paddingHorizontal: tokens.space.xl,

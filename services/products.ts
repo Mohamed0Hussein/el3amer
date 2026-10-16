@@ -1,15 +1,36 @@
 import { Product } from '@/types/Product';
 import axios from './axios';
 
-export const getProducts = async (category?: string, search?: string, isActive?: boolean): Promise<Product[]> => {
-  const res = await axios.get(`/items`, {
+export type ProductSort = 'name' | 'price_low' | 'price_high' | 'newest';
+
+export interface ProductQuery {
+  search?: string;
+  category?: string;
+  sort?: ProductSort;
+  ids?: number[];
+  limit?: number;
+}
+
+export interface ProductPage {
+  items: Product[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// The catalogue is too big to download at once, so it comes a page at a time.
+export const getProductPage = async (query: ProductQuery, page = 1): Promise<ProductPage> => {
+  const res = await axios.get('/items', {
     params: {
-      category: category && category !== 'all' ? category : undefined,
-      search,
-      isActive,
+      isActive: true,
+      search: query.search || undefined,
+      category: query.category && query.category !== 'all' ? query.category : undefined,
+      sort: query.sort,
+      ids: query.ids?.join(','),
+      limit: query.limit ?? 30,
+      page,
     },
   });
-
   return res.data;
 };
 

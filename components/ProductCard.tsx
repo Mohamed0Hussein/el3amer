@@ -2,7 +2,7 @@ import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useTheme } from '@/hooks/useTheme';
-import { formatUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, maxQuantity, priceWithUnit } from '@/constants/format';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +23,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
 
   const isFav = favorites.includes(product.id);
   const qty = cart.find((c) => c.id === product.id)?.quantity ?? 0;
+  const max = maxQuantity(product);
 
   const imageUrl = product.image?.startsWith('http')
     ? product.image
@@ -72,18 +73,20 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
           adjustsFontSizeToFit
           minimumFontScale={0.7}
         >
-          {formatPrice(product.price)}
+          {priceWithUnit(formatPrice(product.price), product.unit)}
         </ThemedText>
         {qty > 0 ? (
           <View style={[styles.stepper, { backgroundColor: theme.primary[500] }]}>
             <TouchableOpacity style={styles.stepBtn} onPress={() => updateCartQuantity(product.id, -1)} hitSlop={tokens.hitSlop}>
               <ThemedText variant="inverse" weight="extrabold">−</ThemedText>
             </TouchableOpacity>
-            <ThemedText variant="inverse" size="xs" weight="extrabold" style={styles.stepValue}>{qty}</ThemedText>
+            <ThemedText variant="inverse" size="xs" weight="extrabold" style={styles.stepValue} numberOfLines={1}>
+              {formatQuantity(qty, product.unit)}
+            </ThemedText>
             <TouchableOpacity
-              style={[styles.stepBtn, qty >= product.stock && { opacity: 0.4 }]}
+              style={[styles.stepBtn, qty >= max && { opacity: 0.4 }]}
               onPress={() => updateCartQuantity(product.id, 1)}
-              disabled={qty >= product.stock}
+              disabled={qty >= max}
               hitSlop={tokens.hitSlop}
             >
               <ThemedText variant="inverse" weight="extrabold">+</ThemedText>
@@ -92,8 +95,8 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
         ) : (
           <TouchableOpacity
             onPress={() => addToCart(product)}
-            disabled={product.stock <= 0}
-            style={[styles.addBtn, { borderColor: theme.primary[500] }, product.stock <= 0 && { opacity: 0.4 }]}
+            disabled={max <= 0}
+            style={[styles.addBtn, { borderColor: theme.primary[500] }, max <= 0 && { opacity: 0.4 }]}
             hitSlop={tokens.hitSlop}
           >
             <Ionicons name="add" size={20} color={theme.primary[500]} />

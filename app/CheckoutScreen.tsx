@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/hooks/useTheme';
 import { createOrder, getPaymentConfig } from '@/services/orders';
 import { getUserInfo } from '@/services/user';
@@ -43,12 +45,18 @@ export default function CheckoutScreen() {
   });
   const method: PaymentMethod = payConfig?.card ? paymentMethod : 'cash';
 
+  const settings = useStoreSettings();
+  const closed = settings?.isOpen === false;
+  const fee = settings?.deliveryFee;
+  const total = cartTotal + (fee ?? 0);
+
   const shippingAddress: string | undefined = me?.user?.address;
   // Only pins can be checked; the server also rejects out-of-zone orders.
   const pin = me?.user?.latitude != null ? { latitude: me.user.latitude, longitude: me.user.longitude } : null;
   const outsideZone = !!pin && !isInDeliveryZone(pin);
   const phone: string | undefined = me?.user?.phone;
-  const canOrder = !!shippingAddress && !!phone && !outsideZone;
+  // Waits for the settings so the total shown is the one that gets charged.
+  const canOrder = !!shippingAddress && !!phone && !outsideZone && !!settings && !closed;
 
   const handleConfirm = async () => {
     if (!user || cart.length === 0 || !canOrder) return;
@@ -69,9 +77,14 @@ export default function CheckoutScreen() {
       } else {
         router.replace({ pathname: ROUTES.ORDER_DETAILS as any, params: { order: JSON.stringify(order) } });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout error:', error);
-      Alert.alert(t('orderFailed'), t('orderFailedMessage'));
+      if (error?.response?.status === 409) {
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+        Alert.alert(t('storeClosedTitle'), t('storeClosedBody'));
+      } else {
+        Alert.alert(t('orderFailed'), t('orderFailedMessage'));
+      }
     } finally {
       setIsPlacing(false);
     }
@@ -136,6 +149,20 @@ export default function CheckoutScreen() {
           </View>
         )}
 
+        {closed && (
+          <View style={[styles.zoneWarning, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+            <Ionicons name="moon-outline" size={18} color="#B91C1C" />
+            <View style={{ flex: 1 }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>
+                {t('storeClosedTitle')}
+              </ThemedText>
+              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+                {t('storeClosedBody')}
+              </ThemedText>
+            </View>
+          </View>
+        )}
+
         {/* Payment method */}
         <ThemedText size="sm" weight="extrabold" style={styles.sectionTitle}>{t('paymentMethod')}</ThemedText>
         <View style={styles.paymentList}>
@@ -172,13 +199,15 @@ export default function CheckoutScreen() {
           </View>
           <View style={styles.summaryRow}>
             <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
-            <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>{t('free')}</ThemedText>
+            <ThemedText size="sm" weight="bold" style={fee === 0 ? { color: theme.status.success } : undefined}>
+              {fee === undefined ? '…' : fee > 0 ? formatPrice(fee) : t('free')}
+            </ThemedText>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.gray[100] }]} />
           <View style={styles.summaryRow}>
             <ThemedText size="base" weight="extrabold">{t('total')}</ThemedText>
             <ThemedText size="lg" weight="extrabold" style={{ color: theme.primary[500] }}>
-              {formatPrice(cartTotal)}
+              {formatPrice(total)}
             </ThemedText>
           </View>
         </View>
@@ -200,7 +229,7 @@ export default function CheckoutScreen() {
             <>
               <ThemedText variant="inverse" size="base" weight="extrabold">{t('confirmOrder')}</ThemedText>
               <ThemedText variant="inverse" size="base" weight="bold" style={{ marginLeft: 6 }}>
-                · {formatPrice(cartTotal)}
+                · {formatPrice(total)}
               </ThemedText>
             </>
           )}

@@ -8,15 +8,15 @@ import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useProducts } from '@/hooks/useProducts';
 import { useTheme } from '@/hooks/useTheme';
 import { getCategories } from '@/services/categories';
-import { getProducts } from '@/services/products';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CategoryScreen() {
@@ -30,21 +30,14 @@ export default function CategoryScreen() {
 
   const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: getCategories });
 
-  // Filter client-side from the shared all-products cache: the backend runs
-  // xss() on the ?category= filter, which turns "Dairy & Eggs" into
-  // "Dairy &amp; Eggs" and matches nothing.
-  const { data: allProducts = [], isLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => getProducts(undefined, undefined, true),
-  });
-  const products = category === 'all' ? allProducts : allProducts.filter((p) => p.category === category);
+  const { products, total, isLoading, loadMore, isFetchingNextPage } = useProducts({ category, sort: 'name' });
 
   const chips = [{ id: 'all', name: t('cat_all') }, ...categories];
   const title = category === 'all' ? t('allCategories') : category;
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <ScreenHeader title={title} subtitle={`${products.length} ${t('productsCount')}`} />
+      <ScreenHeader title={title} subtitle={`${total} ${t('productsCount')}`} />
 
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -82,6 +75,11 @@ export default function CategoryScreen() {
           columnWrapperStyle={styles.row}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 110 }]}
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isFetchingNextPage ? <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary[500]} /> : null
+          }
           ListEmptyComponent={
             <EmptyState icon="search-outline" title={t('noProducts')} message={t('noProductsMessage')} />
           }

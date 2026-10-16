@@ -10,8 +10,9 @@ const normalizeOrder = (raw: any): Order => ({
     const through = item.OrderItem ?? item.order_item ?? {};
     return {
       ...item,
-      quantity: item.quantity ?? through.quantity,
-      price: item.price ?? through.price,
+      quantity: through.quantity ?? item.quantity,
+      price: through.price ?? item.price,
+      unavailable: through.unavailable ?? false,
     };
   }),
 });
@@ -61,5 +62,11 @@ export const getOrderById = async (orderId: number): Promise<Order> => {
  */
 export const cancelOrder = async (orderId: number): Promise<Order> => {
   const res = await axios.put(`/orders/${orderId}/cancel`);
+  return normalizeOrder(res.data.order);
+};
+
+// Answer to "some items are out of stock": take the rest, or cancel.
+export const decideOrder = async (orderId: number, action: 'continue' | 'cancel'): Promise<Order> => {
+  const res = await axios.post(`/orders/${orderId}/decision`, { action });
   return normalizeOrder(res.data.order);
 };
