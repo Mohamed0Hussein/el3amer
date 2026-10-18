@@ -1,3 +1,4 @@
+import { reportError } from '@/lib/sentry';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -26,6 +27,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[ErrorBoundary] caught render error:', error, info.componentStack);
+    reportError(error);
   }
 
   reset = () => {

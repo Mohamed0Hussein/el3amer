@@ -24,5 +24,4 @@ export const ROUTES = {
   ADDRESSES: '/AddressScreen',
   CHANGE_PASSWORD: '/ChangePasswordScreen',
   ABOUT: '/AboutScreen',
-  LEGAL: '/LegalScreen',
 } as const;
