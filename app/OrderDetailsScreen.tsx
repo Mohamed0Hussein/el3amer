@@ -1,8 +1,7 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { env } from '@/config/env';
-import { formatQuantity, formatUnit, lineTotal, priceWithUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, priceWithUnit, imageUrl } from '@/constants/format';
 import { ROUTES } from '@/constants/routes';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -117,9 +116,7 @@ export default function OrderDetailsScreen() {
       <View style={[styles.emojiContainer, { backgroundColor: theme.gray[50] }]}>
         <Image
           source={{
-            uri: item.image?.startsWith('http')
-              ? item.image
-              : `${env.apiOrigin}${item.image?.startsWith('/') ? '' : '/'}${item.image}`,
+            uri: imageUrl(item.image, 200),
           }}
           style={styles.itemImage}
           contentFit="contain"
