@@ -1,3 +1,4 @@
+import '@/lib/sentry';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { ThemedText } from "@/components/themed-text";
@@ -40,9 +41,8 @@ function useProtectedRoute(isAuthenticated: boolean, isHydrating: boolean) {
     if (isHydrating) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const isPublic = segments[0] === 'LegalScreen';
 
-    if (!isAuthenticated && !inAuthGroup && !isPublic) {
+    if (!isAuthenticated && !inAuthGroup) {
       router.replace('/LoginScreen');
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');
@@ -93,7 +93,6 @@ function RootNavigator() {
         <Stack.Screen name="AddressScreen" />
         <Stack.Screen name="ChangePasswordScreen" />
         <Stack.Screen name="AboutScreen" />
-        <Stack.Screen name="LegalScreen" />
       </Stack>
       {/* The app draws edge-to-edge, so the status bar has no background of its
           own (StatusBar backgroundColor is ignored); paint one over the top inset. */}

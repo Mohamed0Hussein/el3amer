@@ -1,11 +1,10 @@
-import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { useLocalization } from '@/context/LocalizationContext';
 import { unregisterPush } from '@/lib/notifications';
 import { queryClient } from '@/lib/queryClient';
+import { clearSession, loadSession, saveSession } from '@/lib/session';
 import { login, loginWithGoogle, logout, signup } from '@/services/auth';
 import { onSessionExpired } from '@/services/axios';
 import { GoogleUserInfo, useGoogleAuth } from '@/services/googleAuth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -27,6 +26,7 @@ interface AuthContextType {
   signupUser: (fullName: string, email: string, password: string) => Promise<void>;
   loginUserWithGoogle: () => Promise<User>;
   logoutUser: () => Promise<void>;
+  replaceToken: (token: string) => Promise<void>;
   isLoading: boolean;
   isGoogleLoading: boolean;
   isLoggingOut: boolean;
@@ -45,39 +45,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { signInWithGoogle, isReady } = useGoogleAuth();
   const { t, language } = useLocalization();
 
-  // Load user from local storage on app start
+  // Load the saved session on app start
   useEffect(() => {
-    const hydrate = async () => {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEYS.authUser);
-        if (raw) setUser(JSON.parse(raw));
-      } catch (e) {
-        console.warn('Failed to hydrate auth user', e);
-      } finally {
-        setIsHydrating(false);
-      }
-    };
-    hydrate();
+    loadSession<User>()
+      .then(setUser)
+      .catch((e) => console.warn('Failed to load the saved session', e))
+      .finally(() => setIsHydrating(false));
   }, []);
 
-  // Persist user on change
-  useEffect(() => {
-    const persist = async () => {
-      if (user) {
-        await AsyncStorage.setItem(STORAGE_KEYS.authUser, JSON.stringify(user));
-      } else {
-        await AsyncStorage.removeItem(STORAGE_KEYS.authUser);
-      }
-    };
-    persist();
-  }, [user]);
+  const signedIn = async (next: User) => {
+    await saveSession(next);
+    setUser(next);
+  };
+
+  // Changing the password signs out every other phone; this one gets a new token.
+  const replaceToken = async (token: string) => {
+    if (user) await signedIn({ ...user, token });
+  };
 
   // Email/password login
   const loginUser = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const response = await login(email, password);
-      setUser({
+      await signedIn({
         ...response,
         authProvider: 'email'
       });
@@ -91,7 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     try {
       const response = await signup(fullName, email, password);
-      setUser({
+      await signedIn({
         ...response,
         authProvider: 'email'
       });
@@ -122,7 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         authProvider: 'google'
       };
 
-      setUser(finalUser);
+      await signedIn(finalUser);
       return finalUser;
     } finally {
       setIsGoogleLoading(false);
@@ -137,7 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Server logout is a no-op; never let a network error keep someone signed in.
       await logout(user?.token || '').catch(() => {});
       setUser(null);
-      await AsyncStorage.removeItem(STORAGE_KEYS.authUser);
+      await clearSession();
       // Drop cached orders/profile so the next account never sees them.
       queryClient.clear();
     } finally {
@@ -169,6 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signupUser,
         loginUserWithGoogle,
         logoutUser,
+        replaceToken,
         isLoading,
         isGoogleLoading,
         isLoggingOut,

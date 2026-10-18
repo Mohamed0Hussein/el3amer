@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
+import { openLegalPage } from '@/lib/legal';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -32,7 +33,7 @@ export default function SignUpScreen() {
   
   const { theme } = useTheme();
   const { signupUser, isLoading: isAuthLoading } = useAuth();
-  const { t, isRtl } = useLocalization();
+  const { t, isRtl, language } = useLocalization();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -199,7 +200,7 @@ export default function SignUpScreen() {
                 size="sm"
                 weight="medium"
                 style={{ color: theme.primary[500] }}
-                onPress={() => router.push({ pathname: ROUTES.LEGAL, params: { doc: 'terms' } })}
+                onPress={() => openLegalPage('terms', language)}
               >
                 {t('termsOfService')}
               </ThemedText>{' '}
@@ -208,7 +209,7 @@ export default function SignUpScreen() {
                 size="sm"
                 weight="medium"
                 style={{ color: theme.primary[500] }}
-                onPress={() => router.push({ pathname: ROUTES.LEGAL, params: { doc: 'privacy' } })}
+                onPress={() => openLegalPage('privacy', language)}
               >
                 {t('privacyPolicy')}
               </ThemedText>

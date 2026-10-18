@@ -1,6 +1,5 @@
 import { env } from '@/config/env';
-import { STORAGE_KEYS } from '@/constants/storageKeys';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getToken } from '@/lib/session';
 import axios from 'axios';
 
 /**
@@ -19,13 +18,8 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      const rawUser = await AsyncStorage.getItem(STORAGE_KEYS.authUser);
-      if (rawUser) {
-        const user = JSON.parse(rawUser);
-        if (user.token) {
-          config.headers.Authorization = `Bearer ${user.token}`;
-        }
-      }
+      const token = await getToken();
+      if (token) config.headers.Authorization = `Bearer ${token}`;
     } catch (e) {
       console.error('Error reading auth token from storage', e);
     }

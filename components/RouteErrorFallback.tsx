@@ -5,7 +5,8 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import { reportError } from '@/lib/sentry';
+import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 
 interface RouteErrorFallbackProps {
@@ -22,6 +23,10 @@ interface RouteErrorFallbackProps {
 export function RouteErrorFallback({ error, retry }: RouteErrorFallbackProps) {
   const { theme } = useTheme();
   const { t } = useLocalization();
+
+  useEffect(() => {
+    reportError(error);
+  }, [error]);
 
   return (
     <ThemedView variant="primary" style={styles.container}>

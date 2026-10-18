@@ -16,7 +16,7 @@ export default function ChangePasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { t } = useLocalization();
-  const { user } = useAuth();
+  const { user, replaceToken } = useAuth();
 
   const handleUpdate = async () => {
     if (!currentPass || !newPass || !confirmPass) {
@@ -36,7 +36,8 @@ export default function ChangePasswordScreen() {
 
     setIsLoading(true);
     try {
-      await changePassword(currentPass, newPass, user?.token || '');
+      const { token } = await changePassword(currentPass, newPass, user?.token || '');
+      if (token) await replaceToken(token);
       Alert.alert(t('success'), t('passwordChangedMessage'), [
         { text: t('ok'), onPress: () => router.back() }
       ]);
