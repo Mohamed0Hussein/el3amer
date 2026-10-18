@@ -1,7 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { env } from '@/config/env';
-import { formatQuantity, formatUnit, lineTotal, maxQuantity, stepOf } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, maxQuantity, stepOf, imageUrl } from '@/constants/format';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
@@ -42,9 +41,7 @@ export default function ProductDetailsScreen() {
     [sameCategory, product.id],
   );
 
-  const imageUrl = product.image?.startsWith('http')
-    ? product.image
-    : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
+  const photo = imageUrl(product.image, 900);
 
   const handleDecrease = () => {
     if (steps > 1) setSteps(steps - 1);
@@ -88,7 +85,7 @@ export default function ProductDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Product image */}
         <View style={[styles.imageContainer, { backgroundColor: theme.gray[100] }]}>
-          <Image source={{ uri: imageUrl }} style={styles.image} contentFit="cover" />
+          <Image source={{ uri: photo }} style={styles.image} contentFit="cover" />
         </View>
 
         <View style={styles.content}>
@@ -162,9 +159,7 @@ export default function ProductDetailsScreen() {
             </ThemedText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedContent}>
               {relatedProducts.map((p: Product) => {
-                const relatedImageUrl = p.image?.startsWith('http')
-                  ? p.image
-                  : `${env.apiOrigin}${p.image?.startsWith('/') ? '' : '/'}${p.image}`;
+                const relatedImageUrl = imageUrl(p.image, 400);
                 return (
                   <TouchableOpacity
                     key={p.id}

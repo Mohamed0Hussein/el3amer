@@ -1,8 +1,7 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { env } from '@/config/env';
-import { formatQuantity, formatUnit, lineTotal, maxQuantity, priceWithUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -131,9 +130,7 @@ const Cart = () => {
                 <View style={[styles.itemThumb, { backgroundColor: theme.gray[50] }]}>
                   <Image
                     source={{
-                      uri: item.image?.startsWith('http')
-                        ? item.image
-                        : `${env.apiOrigin}${item.image?.startsWith('/') ? '' : '/'}${item.image}`,
+                      uri: imageUrl(item.image, 200),
                     }}
                     style={styles.itemThumbImage}
                     contentFit="contain"

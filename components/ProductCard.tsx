@@ -2,7 +2,7 @@ import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useTheme } from '@/hooks/useTheme';
-import { formatQuantity, formatUnit, maxQuantity, priceWithUnit } from '@/constants/format';
+import { formatQuantity, formatUnit, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,6 @@ import { router } from 'expo-router';
 import React, { memo, useCallback } from 'react';
 import { Dimensions, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
-import { env } from '@/config/env';
 import { ThemedText } from './themed-text';
 
 const { width } = Dimensions.get('window');
@@ -25,9 +24,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
   const qty = cart.find((c) => c.id === product.id)?.quantity ?? 0;
   const max = maxQuantity(product);
 
-  const imageUrl = product.image?.startsWith('http')
-    ? product.image
-    : `${env.apiOrigin}${product.image?.startsWith('/') ? '' : '/'}${product.image}`;
+  const photo = imageUrl(product.image, 400);
 
   const openDetails = useCallback(() => {
     router.push({ pathname: ROUTES.PRODUCT_DETAILS as any, params: { product: JSON.stringify(product) } });
@@ -45,7 +42,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
       ]}
     >
       <View style={[styles.imageBox, { backgroundColor: theme.gray[50] }]}>
-        <Image source={{ uri: imageUrl }} style={styles.image} contentFit="contain" />
+        <Image source={{ uri: photo }} style={styles.image} contentFit="contain" />
         <TouchableOpacity
           onPress={() => toggleFavorite(product.id)}
           style={styles.favBtn}

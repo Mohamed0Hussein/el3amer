@@ -21,7 +21,7 @@ import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { env } from '@/config/env';
+import { imageUrl } from '@/constants/format';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -276,16 +276,14 @@ export default function HomeScreen() {
             contentContainerStyle={styles.reorderContent}
           >
             {reorderItems.map((item) => {
-              const imageUrl = item.image?.startsWith('http')
-                ? item.image
-                : `${env.apiOrigin}${item.image?.startsWith('/') ? '' : '/'}${item.image}`;
+              const photo = imageUrl(item.image, 200);
               return (
                 <View
                   key={item.id}
                   style={[styles.reorderCard, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}
                 >
                   <View style={[styles.reorderThumb, { backgroundColor: theme.gray[50] }]}>
-                    <Image source={{ uri: imageUrl }} style={styles.reorderThumbImage} contentFit="contain" />
+                    <Image source={{ uri: photo }} style={styles.reorderThumbImage} contentFit="contain" />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <ThemedText size="xs" weight="bold" numberOfLines={1}>{item.name}</ThemedText>

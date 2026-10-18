@@ -1,3 +1,5 @@
+import { env } from '@/config/env';
+
 // Backend units are shouty enum-like strings ("PACK", "BOTTLE") — title-case
 // them for display without needing a translation table.
 export const formatUnit = (unit: string) =>
@@ -31,3 +33,11 @@ export const lineTotal = (price: number, quantity: number) => Math.round(price *
 // "EGP 24.00 / kg" for weighed products, the plain price otherwise.
 export const priceWithUnit = (formatted: string, unit?: string) =>
   isWeighted(unit) ? `${formatted} / ${String(unit).toLowerCase()}` : formatted;
+
+// Product images are full URLs or paths on the backend. Cloudinary photos are
+// resized to `width` pixels and served in the best format for the phone.
+export const imageUrl = (image: string | null | undefined, width: number) => {
+  if (!image) return undefined;
+  if (!image.startsWith('http')) return `${env.apiOrigin}${image.startsWith('/') ? '' : '/'}${image}`;
+  return image.includes('res.cloudinary.com') ? image.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${width}/`) : image;
+};
