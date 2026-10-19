@@ -157,7 +157,7 @@ export default function OrderDetailsScreen() {
           <View style={[styles.heroIcon, { backgroundColor: isCancelled ? theme.status.error : theme.primary[500] }]}>
             <Ionicons name={STAGE_ICONS[order.status]} size={26} color="#fff" />
           </View>
-          <ThemedText size="lg" weight="extrabold" style={{ marginTop: 12 }}>
+          <ThemedText size="lg" weight="extrabold" style={[{ marginTop: 12 }, isCancelled && { color: '#7F1D1D' }]}>
             {t(`status_${order.status}`)}
           </ThemedText>
           {!isCancelled && order.status !== 'delivered' && (
@@ -173,11 +173,12 @@ export default function OrderDetailsScreen() {
             <ThemedText size="sm" weight="extrabold" style={{ color: '#A16207' }}>
               {t('itemsUnavailableTitle')}
             </ThemedText>
-            <ThemedText variant="secondary" size="xs" style={{ marginTop: 4, lineHeight: 18 }}>
+            {/* Light card in both themes, so its text colors are fixed too. */}
+            <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: '#57534E' }}>
               {t('itemsUnavailableBody')}
             </ThemedText>
             {unavailableItems.map((item) => (
-              <ThemedText key={item.id} size="sm" weight="bold" style={{ marginTop: 6 }}>
+              <ThemedText key={item.id} size="sm" weight="bold" style={{ marginTop: 6, color: '#1C1917' }}>
                 • {item.name} ({formatQuantity(item.quantity, item.unit)})
               </ThemedText>
             ))}
@@ -357,7 +358,7 @@ export default function OrderDetailsScreen() {
                 <ThemedText size="sm" weight="extrabold" style={{ color: '#B91C1C' }}>
                   {t('cancelOrderQ')}
                 </ThemedText>
-                <ThemedText variant="tertiary" size="xs" style={{ marginTop: 4, lineHeight: 18 }}>
+                <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: '#7F1D1D' }}>
                   {t('cancelOrderBody')}
                 </ThemedText>
                 <View style={styles.cancelActions}>
