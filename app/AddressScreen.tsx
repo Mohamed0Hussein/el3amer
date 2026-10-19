@@ -15,6 +15,7 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const formatPlace = (p: Location.LocationGeocodedAddress) =>
   p.formattedAddress ??
@@ -37,6 +38,7 @@ export default function AddressScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const mapRef = useRef<PinMapHandle>(null);
   const lookupId = useRef(0);
@@ -130,7 +132,7 @@ export default function AddressScreen() {
 
       {/* No ScrollView: it would fight the map for drag gestures. The map
           flexes, so it shrinks when the keyboard opens. */}
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: insets.bottom + 20 }]}>
         <View style={[styles.mapCard, { borderColor: theme.gray[100], backgroundColor: theme.gray[100] }]}>
           {isLoading ? (
             <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.primary[500]} />
@@ -216,7 +218,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   mapCard: {
     flex: 1,
