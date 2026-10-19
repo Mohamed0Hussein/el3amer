@@ -21,7 +21,7 @@ import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { imageUrl } from '@/constants/format';
+import { formatCount, imageUrl } from '@/constants/format';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -310,28 +310,28 @@ export default function HomeScreen() {
       {/* Result count & sort */}
       <View style={styles.sortContainer}>
         <ThemedText variant="tertiary" size="sm">
-          {total} {t('itemsCount')}
+          {formatCount(total)}
         </ThemedText>
         <View style={[styles.sortButtons, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           <TouchableOpacity
             onPress={() => setSortBy('name')}
             style={[styles.sortBtn, sortBy === 'name' && { backgroundColor: theme.primary[500] }]}
           >
-            <ThemedText variant={sortBy === 'name' ? 'inverse' : 'tertiary'} size="xs" weight="bold">A-Z</ThemedText>
+            <ThemedText variant={sortBy === 'name' ? 'inverse' : 'tertiary'} size="xs" weight="bold">{t('sortAZ')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortBy('price_low')}
             style={[styles.sortBtn, sortBy === 'price_low' && { backgroundColor: theme.primary[500] }]}
           >
             <Ionicons name="trending-up-outline" size={13} color={sortBy === 'price_low' ? '#fff' : theme.gray[400]} />
-            <ThemedText variant={sortBy === 'price_low' ? 'inverse' : 'tertiary'} size="xs" weight="bold">Low</ThemedText>
+            <ThemedText variant={sortBy === 'price_low' ? 'inverse' : 'tertiary'} size="xs" weight="bold">{t('sortLow')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortBy('price_high')}
             style={[styles.sortBtn, sortBy === 'price_high' && { backgroundColor: theme.primary[500] }]}
           >
             <Ionicons name="trending-down-outline" size={13} color={sortBy === 'price_high' ? '#fff' : theme.gray[400]} />
-            <ThemedText variant={sortBy === 'price_high' ? 'inverse' : 'tertiary'} size="xs" weight="bold">High</ThemedText>
+            <ThemedText variant={sortBy === 'price_high' ? 'inverse' : 'tertiary'} size="xs" weight="bold">{t('sortHigh')}</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
