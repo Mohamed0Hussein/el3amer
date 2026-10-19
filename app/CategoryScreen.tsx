@@ -1,5 +1,6 @@
 import { EmptyState } from '@/components/EmptyState';
 import { ProductCard } from '@/components/ProductCard';
+import { formatCount } from '@/constants/format';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProductListSkeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
@@ -95,7 +96,7 @@ export default function CategoryScreen() {
               </View>
               <View>
                 <ThemedText size="xs" weight="bold" style={{ color: '#F3C9A8' }}>
-                  {cartItemCount} {t('itemsCount')}
+                  {formatCount(cartItemCount)}
                 </ThemedText>
                 <ThemedText size="base" weight="extrabold" style={{ color: '#fff' }}>
                   {formatPrice(cartTotal)}

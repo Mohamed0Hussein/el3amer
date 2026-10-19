@@ -1,3 +1,4 @@
+import { setFormatLanguage } from '@/constants/format';
 import { SupportedLanguage, isRtlLanguage, translations } from '@/localization/translations';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
@@ -18,6 +19,7 @@ const STORAGE_KEY = '@settings:language';
 export const LocalizationProvider = ({ children }: { children: React.ReactNode }) => {
   const [language, setLanguageState] = useState<SupportedLanguage>('en');
   const [isReady, setIsReady] = useState(false);
+  setFormatLanguage(language);
 
   useEffect(() => {
     const hydrate = async () => {

@@ -1,9 +1,22 @@
 import { env } from '@/config/env';
+import { SupportedLanguage, translations } from '@/localization/translations';
 
-// Backend units are shouty enum-like strings ("PACK", "BOTTLE") — title-case
-// them for display without needing a translation table.
+// LocalizationProvider sets this, so the helpers below use the app's language
+// without every caller passing it in.
+let words: (typeof translations)[SupportedLanguage] = translations.en;
+export const setFormatLanguage = (language: SupportedLanguage) => {
+  words = translations[language];
+};
+
+// Backend units are enum-like strings ("PACK", "KG"); unknown ones are title-cased.
 export const formatUnit = (unit: string) =>
-  unit.charAt(0).toUpperCase() + unit.slice(1).toLowerCase();
+  words[`unit_${unit.toUpperCase()}` as keyof typeof words] ?? unit.charAt(0).toUpperCase() + unit.slice(1).toLowerCase();
+
+// "1 item", "5 items". Arabic has its own forms for 1, 2, 3–10 and 11+.
+export const formatCount = (n: number) => {
+  const form = n === 1 ? words.items_one : n === 2 ? words.items_two : n % 100 >= 3 && n % 100 <= 10 ? words.items_few : words.items_many;
+  return form.replace('{n}', String(n));
+};
 
 type Sellable = { unit?: string; step?: number; stock: number };
 
@@ -25,14 +38,14 @@ export const clampQuantity = (quantity: number, p: Sellable) => Math.min(round3(
 export const formatQuantity = (quantity: number, unit?: string) => {
   if (!isWeighted(unit)) return String(quantity);
   const grams = String(unit).toUpperCase() === 'KG' ? quantity * 1000 : quantity;
-  return grams >= 1000 ? `${round3(grams / 1000)} kg` : `${Math.round(grams)} g`;
+  return grams >= 1000 ? `${round3(grams / 1000)} ${words.qtyKg}` : `${Math.round(grams)} ${words.qtyG}`;
 };
 
 export const lineTotal = (price: number, quantity: number) => Math.round(price * quantity * 100) / 100;
 
 // "EGP 24.00 / kg" for weighed products, the plain price otherwise.
 export const priceWithUnit = (formatted: string, unit?: string) =>
-  isWeighted(unit) ? `${formatted} / ${String(unit).toLowerCase()}` : formatted;
+  isWeighted(unit) ? `${formatted} / ${String(unit).toUpperCase() === 'KG' ? words.qtyKg : words.qtyG}` : formatted;
 
 // Product images are full URLs or paths on the backend. Cloudinary photos are
 // resized to `width` pixels and served in the best format for the phone.
