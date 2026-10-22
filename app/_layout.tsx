@@ -1,4 +1,5 @@
 import '@/lib/sentry';
+import { AppUpdates } from "@/components/AppUpdates";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkBanner } from "@/components/NetworkBanner";
 import { ThemedText } from "@/components/themed-text";
@@ -94,6 +95,7 @@ function RootNavigator() {
         <Stack.Screen name="ChangePasswordScreen" />
         <Stack.Screen name="AboutScreen" />
       </Stack>
+      <AppUpdates app="customer" />
       {/* The app draws edge-to-edge, so the status bar has no background of its
           own (StatusBar backgroundColor is ignored); paint one over the top inset. */}
       <View
