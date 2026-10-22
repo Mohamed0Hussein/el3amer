@@ -1,14 +1,14 @@
+import { AuthInput } from '@/components/AuthInput';
 import { Logo } from '@/components/Logo';
+import { PasswordStrength, passwordScore } from '@/components/PasswordStrength';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
 import { openLegalPage } from '@/lib/legal';
 import { useTheme } from '@/hooks/useTheme';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -28,8 +28,6 @@ export default function SignUpScreen() {
     password: '',
     confirmPassword: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const { theme } = useTheme();
   const { signupUser, isLoading: isAuthLoading } = useAuth();
@@ -110,68 +108,43 @@ export default function SignUpScreen() {
 
           {/* Form */}
           <View style={styles.form}>
-            <ThemedTextInput
+            <AuthInput
+              label={t('fullNameLabel')}
+              icon="person-outline"
               placeholder={t('fullNamePlaceholder')}
               value={formData.fullName}
               onChangeText={(value) => handleInputChange('fullName', value)}
-              style={styles.input}
-              icon='person-outline'
-              placeholderTextColor={theme.gray[400]}
             />
 
-            <ThemedTextInput
+            <AuthInput
+              label={t('emailLabel')}
+              icon="mail-outline"
               placeholder={t('emailPlaceholder')}
               value={formData.email}
               onChangeText={(value) => handleInputChange('email', value)}
-              style={styles.input}
-              icon='mail-outline'
-              placeholderTextColor={theme.gray[400]}
               keyboardType="email-address"
               autoCapitalize="none"
             />
 
-            <ThemedTextInput
+            <AuthInput
+              label={t('passwordLabel')}
+              icon="lock-closed-outline"
+              password
+              success={passwordScore(formData.password) === 5}
               placeholder={t('createPasswordPlaceholder')}
               value={formData.password}
               onChangeText={(value) => handleInputChange('password', value)}
-              secureTextEntry={!showPassword}
-              style={styles.input}
-              icon='lock-closed-outline'
-              placeholderTextColor={theme.gray[400]}
-              rightIcon={
-                <TouchableOpacity 
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons 
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
-                    size={20} 
-                    color={theme.gray[400]} 
-                  />
-                </TouchableOpacity>
-              }
             />
+            <PasswordStrength password={formData.password} />
 
-            <ThemedTextInput
+            <AuthInput
+              label={t('confirmPasswordLabel')}
+              icon="lock-closed-outline"
+              password
+              success={!!formData.confirmPassword && formData.confirmPassword === formData.password}
               placeholder={t('confirmPasswordPlaceholder')}
               value={formData.confirmPassword}
               onChangeText={(value) => handleInputChange('confirmPassword', value)}
-              secureTextEntry={!showConfirmPassword}
-              style={styles.input}
-              icon='lock-closed-outline'
-              placeholderTextColor={theme.gray[400]}
-              rightIcon={
-                <TouchableOpacity 
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Ionicons 
-                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} 
-                    size={20} 
-                    color={theme.gray[400]} 
-                  />
-                </TouchableOpacity>
-              }
             />
 
             <ThemedButton
