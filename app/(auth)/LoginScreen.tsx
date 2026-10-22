@@ -1,7 +1,7 @@
+import { AuthInput } from '@/components/AuthInput';
 import { Logo } from '@/components/Logo';
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -24,7 +24,6 @@ import {
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   
   const { theme } = useTheme();
     const { loginUser, loginUserWithGoogle, isLoading, isGoogleLoading } = useAuth();
@@ -114,41 +113,24 @@ export default function LoginScreen() {
           {/* Form Section */}
           <View style={styles.formContainer}>
             <View style={styles.form}>
-              <ThemedTextInput
+              <AuthInput
                 label={t('emailLabel')}
-                icon='mail-outline'
+                icon="mail-outline"
                 placeholder={t('emailPlaceholder')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                style={styles.input}
-                placeholderTextColor={theme.gray[400]}
               />
 
-              <ThemedTextInput
+              <AuthInput
                 label={t('passwordLabel')}
-                icon='lock-closed-outline'
+                icon="lock-closed-outline"
+                password
                 placeholder={t('passwordPlaceholder')}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                style={styles.input}
-                placeholderTextColor={theme.gray[400]}
-                rightIcon={
-                  <TouchableOpacity 
-                    onPress={() => setShowPassword(!showPassword)} 
-                    style={styles.eyeIcon}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons 
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
-                      size={22} 
-                      color={theme.gray[500]} 
-                    />
-                  </TouchableOpacity>
-                }
               />
 
               <TouchableOpacity
