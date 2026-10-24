@@ -27,25 +27,38 @@ const FLAG_GRANT_READ_URI_PERMISSION = 1;
 
 // Downloads the APK into the app's cache and opens Android's installer on it;
 // the user only taps Install (and, the first time, allows installs from this
-// app). Falls back to the browser if anything in that chain fails.
-const installApk = async (url: string, onProgress: (share: number) => void) => {
+// app). Each version is downloaded once: the file is only given its final name
+// when complete and stays until a newer version replaces it, so a cancelled or
+// failed install doesn't cost another 100+ MB.
+// A successful install replaces the app and ends this process, so returning
+// 'opened' means the installer closed without installing it.
+const installApk = async (url: string, version: string, onProgress: (share: number) => void): Promise<'opened' | 'browser'> => {
   try {
     if (Platform.OS !== 'android') throw new Error('Android only');
-    const target = `${FileSystem.cacheDirectory}update.apk`;
-    await FileSystem.deleteAsync(target, { idempotent: true });
-    const download = FileSystem.createDownloadResumable(url, target, {}, ({ totalBytesWritten, totalBytesExpectedToWrite }) =>
-      onProgress(totalBytesExpectedToWrite > 0 ? totalBytesWritten / totalBytesExpectedToWrite : 0),
-    );
-    const result = await download.downloadAsync();
-    if (!result || result.status !== 200) throw new Error(`Download failed (${result?.status})`);
+    const dir = FileSystem.cacheDirectory!;
+    const target = `${dir}update-${version}.apk`;
+    if (!(await FileSystem.getInfoAsync(target)).exists) {
+      for (const name of await FileSystem.readDirectoryAsync(dir)) {
+        if (/^update.*\.apk(\.part)?$/.test(name)) await FileSystem.deleteAsync(dir + name, { idempotent: true });
+      }
+      const download = FileSystem.createDownloadResumable(url, `${target}.part`, {}, ({ totalBytesWritten, totalBytesExpectedToWrite }) =>
+        onProgress(totalBytesExpectedToWrite > 0 ? totalBytesWritten / totalBytesExpectedToWrite : 0),
+      );
+      const result = await download.downloadAsync();
+      if (!result || result.status !== 200) throw new Error(`Download failed (${result?.status})`);
+      await FileSystem.moveAsync({ from: `${target}.part`, to: target });
+    }
+    onProgress(1);
     await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-      data: await FileSystem.getContentUriAsync(result.uri),
+      data: await FileSystem.getContentUriAsync(target),
       type: 'application/vnd.android.package-archive',
       flags: FLAG_GRANT_READ_URI_PERMISSION,
     });
+    return 'opened';
   } catch (error) {
     console.warn('In-app update failed, opening the browser:', error);
     await Linking.openURL(url);
+    return 'browser';
   }
 };
 
@@ -64,10 +77,18 @@ export function AppUpdates({ app }: { app: 'customer' | 'store' }) {
   const lastCheck = useRef(0);
   const offered = useRef<string | null>(null);
 
-  const install = async (url: string) => {
+  const install = async (release: Release) => {
     setProgress(0);
-    await installApk(url, setProgress);
+    const how = await installApk(release.url!, release.latest, setProgress);
     setProgress(null);
+    // Still running, so it wasn't installed: say so instead of silently asking
+    // (and downloading) again on the next launch.
+    if (how === 'opened') {
+      Alert.alert(t('installNotFinishedTitle'), t('installNotFinishedBody'), [
+        { text: t('later'), style: 'cancel' },
+        { text: t('tryAgain'), onPress: () => install(release) },
+      ]);
+    }
   };
 
   useEffect(() => {
@@ -85,7 +106,7 @@ export function AppUpdates({ app }: { app: 'customer' | 'store' }) {
           offered.current = release.latest;
           Alert.alert(t('newVersionTitle'), t('newVersionBody'), [
             { text: t('later'), style: 'cancel' },
-            { text: t('download'), onPress: () => install(release.url!) },
+            { text: t('download'), onPress: () => install(release) },
           ]);
         }
         if (Updates.isEnabled && (await Updates.checkForUpdateAsync()).isAvailable) await Updates.fetchUpdateAsync();
@@ -122,7 +143,7 @@ export function AppUpdates({ app }: { app: 'customer' | 'store' }) {
         <ThemedText variant="secondary" style={[styles.center, { marginTop: 8 }]}>
           {t('updateRequiredBody')}
         </ThemedText>
-        <ThemedButton size="lg" style={styles.button} loading={progress !== null} onPress={() => install(required.url!)}>
+        <ThemedButton size="lg" style={styles.button} loading={progress !== null} onPress={() => install(required)}>
           {t('download')}
         </ThemedButton>
         {downloading}
