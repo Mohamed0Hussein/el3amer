@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#C94A0A"
+      "backgroundColor": "#E2560F"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,8 +21,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#C94A0A"
+        "foregroundImage": "./assets/images/adaptive-foreground.png",
+        "backgroundColor": "#E2560F"
       },
       "package": "com.el3amer.app",
       "googleServicesFile": "./google-services.json",
