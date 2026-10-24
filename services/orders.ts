@@ -1,4 +1,4 @@
-import { CreateOrderPayload, Order, OrderLineItem } from '@/types/Order';
+import { CreateOrderPayload, Order, OrderLineItem, OrderQuote } from '@/types/Order';
 import axios from './axios';
 
 // Sequelize nests belongsToMany join-table columns under the through model's
@@ -25,6 +25,18 @@ const normalizeOrder = (raw: any): Order => ({
 export const createOrder = async (payload: CreateOrderPayload): Promise<{ order: Order; paymentUrl: string | null }> => {
   const res = await axios.post('/orders', payload);
   return { order: normalizeOrder(res.data.order), paymentUrl: res.data.paymentUrl ?? null };
+};
+
+// Fee for the pin's zone, promo discount and total, before ordering.
+export const quoteOrder = async (payload: Omit<CreateOrderPayload, 'userId' | 'deliveryFee'>): Promise<OrderQuote> => {
+  const res = await axios.post('/orders/quote', payload);
+  return res.data;
+};
+
+// "I received it": the customer closes an order that is out for delivery.
+export const confirmReceived = async (orderId: number): Promise<Order> => {
+  const res = await axios.put(`/orders/${orderId}/received`);
+  return normalizeOrder(res.data.order);
 };
 
 // Card checkout is only offered once the store has Kashier keys set up.
@@ -65,8 +77,9 @@ export const cancelOrder = async (orderId: number): Promise<Order> => {
   return normalizeOrder(res.data.order);
 };
 
-// Answer to "some items are out of stock": take the rest, or cancel.
-export const decideOrder = async (orderId: number, action: 'continue' | 'cancel'): Promise<Order> => {
+// Answer to "some items are out of stock": take the offered substitutes, take
+// the rest, or cancel.
+export const decideOrder = async (orderId: number, action: 'accept' | 'continue' | 'cancel'): Promise<Order> => {
   const res = await axios.post(`/orders/${orderId}/decision`, { action });
   return normalizeOrder(res.data.order);
 };

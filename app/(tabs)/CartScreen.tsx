@@ -2,7 +2,7 @@ import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { formatCount, formatQuantity, formatUnit, lineTotal, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
-import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useMyDelivery } from '@/hooks/useMyDelivery';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
@@ -32,7 +32,9 @@ const Cart = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const formatPrice = useCurrency();
-  const fee = useStoreSettings()?.deliveryFee;
+  // The customer's zone fee; checkout confirms it before ordering.
+  const delivery = useMyDelivery();
+  const fee = delivery?.deliverable ? delivery.fee ?? undefined : undefined;
   const total = cartTotal + (fee ?? 0);
 
   // The backend requires a non-null shippingAddress on every order — read it
@@ -113,7 +115,7 @@ const Cart = () => {
                 <View style={styles.summaryRow}>
                   <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
                   <ThemedText size="sm" weight="bold" style={fee === 0 ? { color: theme.status.success } : undefined}>
-                    {fee === undefined ? '…' : fee > 0 ? formatPrice(fee) : t('free')}
+                    {fee === undefined ? t('feeAtCheckout') : fee > 0 ? formatPrice(fee) : t('free')}
                   </ThemedText>
                 </View>
                 <View style={[styles.summaryDivider, { backgroundColor: theme.gray[100] }]} />

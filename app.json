@@ -3,7 +3,7 @@
     "name": "El3amer",
     "slug": "El3amer",
     "scheme": "com.el3amer.app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -25,7 +25,10 @@
         "backgroundColor": "#C94A0A"
       },
       "package": "com.el3amer.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
