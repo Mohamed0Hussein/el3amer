@@ -1,7 +1,8 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import WebView from 'react-native-webview';
 import { DELIVERY_ZONE, Point } from '@/constants/deliveryZone';
+import { ZoneShape } from '@/services/zones';
 
 export type PinMapHandle = { moveTo: (p: Point) => void };
 
@@ -20,12 +21,23 @@ var map = L.map('map', { zoomControl: false }).setView([${p.latitude}, ${p.longi
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19, attribution: '&copy; OpenStreetMap'
 }).addTo(map);
-// Delivery zone outline (radius in metres).
-var zone = L.circle([${DELIVERY_ZONE.center.latitude}, ${DELIVERY_ZONE.center.longitude}], {
+// Until the store draws its zones: the old circle around the store (radius in metres).
+var zones = L.featureGroup([L.circle([${DELIVERY_ZONE.center.latitude}, ${DELIVERY_ZONE.center.longitude}], {
   radius: ${DELIVERY_ZONE.radiusKm * 1000}, color: '#C94A0A', weight: 2, fillColor: '#C94A0A', fillOpacity: 0.07,
   interactive: false
-}).addTo(map);
-${zoom == null ? "map.fitBounds(zone.getBounds(), { padding: [16, 16] });" : ''}
+})]).addTo(map);
+var fit = ${zoom == null ? 'true' : 'false'};
+if (fit) map.fitBounds(zones.getBounds(), { padding: [16, 16] });
+// Delivery zones in orange, no-delivery zones in red.
+window.drawZones = function (list) {
+  if (!list.length) return;
+  map.removeLayer(zones);
+  zones = L.featureGroup(list.map(function (z) {
+    var c = z.delivers ? '#C94A0A' : '#B91C1C';
+    return L.polygon(z.polygon, { color: c, weight: 2, fillColor: c, fillOpacity: z.delivers ? 0.07 : 0.25, interactive: false });
+  })).addTo(map);
+  if (fit) map.fitBounds(zones.getBounds(), { padding: [16, 16] });
+};
 var programmatic = false;
 // Called from the app; setView without animation fires moveend synchronously,
 // so the flag only swallows this move, never the user's next drag.
@@ -43,11 +55,19 @@ map.on('moveend', function () {
 
 // Reports the map center whenever the user pans/zooms; the app draws the pin
 // on top at the center.
-export const PinMap = forwardRef<PinMapHandle, { initial: Point; zoom: number | null; onMove: (p: Point) => void }>(
-  function PinMap({ initial, zoom, onMove }, ref) {
+export const PinMap = forwardRef<
+  PinMapHandle,
+  { initial: Point; zoom: number | null; zones?: ZoneShape[]; onMove: (p: Point) => void }
+>(
+  function PinMap({ initial, zoom, zones, onMove }, ref) {
     const webRef = useRef<WebView>(null);
     // Built once: re-rendering with new HTML would reload the whole map.
     const [html] = useState(() => buildHtml(initial, zoom));
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+      if (loaded && zones?.length) webRef.current?.injectJavaScript(`drawZones(${JSON.stringify(zones)}); true;`);
+    }, [loaded, zones]);
 
     useImperativeHandle(ref, () => ({
       moveTo: (p) => webRef.current?.injectJavaScript(`moveTo(${p.latitude}, ${p.longitude}); true;`),
@@ -61,6 +81,7 @@ export const PinMap = forwardRef<PinMapHandle, { initial: Point; zoom: number | 
         style={StyleSheet.absoluteFill}
         // OSM asks clients to identify themselves.
         applicationNameForUserAgent="El3amer"
+        onLoadEnd={() => setLoaded(true)}
         onMessage={(e) => {
           try {
             onMove(JSON.parse(e.nativeEvent.data));

@@ -8,16 +8,23 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { queryClient } from '@/lib/queryClient';
-import { cancelOrder, decideOrder, getOrderById, payOrder } from '@/services/orders';
+import { cancelOrder, confirmReceived, decideOrder, getOrderById, payOrder } from '@/services/orders';
+import { etaOf } from '@/services/settings';
 import { Order } from '@/types/Order';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const STAGES = ['pending', 'confirmed', 'shipped', 'delivered'] as const;
+
+// WhatsApp wants the international number without "+": 01012345678 -> 201012345678.
+const whatsappNumber = (phone: string) => {
+  const digits = phone.replace(/\D/g, '');
+  return digits.startsWith('0') && digits.length === 11 ? `20${digits.slice(1)}` : digits;
+};
 
 const STAGE_ICONS: Record<Order['status'], keyof typeof Ionicons.glyphMap> = {
   pending: 'receipt-outline',
@@ -38,6 +45,9 @@ export default function OrderDetailsScreen() {
     queryKey: ['order', initial.id],
     queryFn: () => getOrderById(initial.id),
     initialData: initial,
+    // The list's copy has no delivery code or substitutes: fetch on every open.
+    staleTime: 0,
+    initialDataUpdatedAt: 0,
     refetchInterval: (query) =>
       ['delivered', 'cancelled'].includes(query.state.data?.status ?? '') ? false : 30_000,
   });
@@ -52,7 +62,8 @@ export default function OrderDetailsScreen() {
   const formatPrice = useCurrency();
   const [isCancelling, setIsCancelling] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
-  const [deciding, setDeciding] = useState<'continue' | 'cancel' | null>(null);
+  const [deciding, setDeciding] = useState<'accept' | 'continue' | 'cancel' | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const settings = useStoreSettings();
 
   const isCancelled = order.status === 'cancelled';
@@ -60,9 +71,16 @@ export default function OrderDetailsScreen() {
   const awaitingDecision = !!order.decisionRequestedAt && !isCancelled;
   const canCancel = (order.status === 'pending' || order.status === 'confirmed') && !awaitingDecision;
   const deliveryFee = order.deliveryFee ?? 0;
+  const discount = order.discount ?? 0;
   const unavailableItems = order.items.filter((item) => item.unavailable);
   const totalWithoutMissing = order.totalAmount -
     unavailableItems.reduce((sum, item) => sum + lineTotal(item.price, item.quantity), 0);
+  // ponytail: previews keep the promo discount as is; the backend recomputes a
+  // percent discount on the new items, so the final total can differ slightly.
+  const substitutes = order.substitutes ?? [];
+  const totalWithSubstitutes = totalWithoutMissing +
+    substitutes.reduce((sum, s) => sum + lineTotal(s.item.price, s.quantity), 0);
+  const outForDelivery = order.status === 'shipped';
   const isCard = order.paymentMethod === 'card';
   const needsPayment = isCard && order.paymentStatus !== 'paid' && order.status === 'pending';
   const [startingPayment, setStartingPayment] = useState(false);
@@ -79,18 +97,40 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  const handleDecision = async (action: 'continue' | 'cancel') => {
+  const handleDecision = async (action: 'accept' | 'continue' | 'cancel') => {
     setDeciding(action);
     try {
       const updated = await decideOrder(order.id, action);
       queryClient.setQueryData(['order', order.id], updated);
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-    } catch {
-      Alert.alert(t('error'), t('orderFailedMessage'));
+    } catch (error: any) {
+      // A substitute sold out meanwhile: the order is unchanged, choose again.
+      Alert.alert(t('error'), error?.response?.status === 409 ? t('substituteSoldOut') : t('orderFailedMessage'));
+      refetch();
     } finally {
       setDeciding(null);
     }
   };
+
+  const handleReceived = () =>
+    Alert.alert(t('receivedQ'), t('receivedBody'), [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('receivedYes'),
+        onPress: async () => {
+          setConfirming(true);
+          try {
+            queryClient.setQueryData(['order', order.id], await confirmReceived(order.id));
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+          } catch {
+            Alert.alert(t('error'), t('orderFailedMessage'));
+            refetch();
+          } finally {
+            setConfirming(false);
+          }
+        },
+      },
+    ]);
 
   const handleCancel = async () => {
     setIsCancelling(true);
@@ -162,7 +202,7 @@ export default function OrderDetailsScreen() {
           </ThemedText>
           {!isCancelled && order.status !== 'delivered' && (
             <ThemedText variant="tertiary" size="xs" style={{ marginTop: 4 }}>
-              {t('deliveryEta').replace('{eta}', String(settings?.etaMinutes ?? 30))}
+              {t('deliveryEta').replace('{eta}', String(etaOf(settings)))}
             </ThemedText>
           )}
         </View>
@@ -175,13 +215,41 @@ export default function OrderDetailsScreen() {
             </ThemedText>
             {/* Light card in both themes, so its text colors are fixed too. */}
             <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: '#57534E' }}>
-              {t('itemsUnavailableBody')}
+              {t(substitutes.length ? 'itemsUnavailableBodySubs' : 'itemsUnavailableBody')}
             </ThemedText>
-            {unavailableItems.map((item) => (
-              <ThemedText key={item.id} size="sm" weight="bold" style={{ marginTop: 6, color: '#1C1917' }}>
-                • {item.name} ({formatQuantity(item.quantity, item.unit)})
-              </ThemedText>
-            ))}
+            {unavailableItems.map((item) => {
+              const sub = substitutes.find((s) => s.forItemId === item.id);
+              return (
+                <View key={item.id} style={{ marginTop: 8 }}>
+                  <ThemedText size="sm" weight="bold" style={{ color: '#1C1917' }}>
+                    • {item.name} ({formatQuantity(item.quantity, item.unit)})
+                  </ThemedText>
+                  {sub && (
+                    <ThemedText size="xs" style={{ color: '#15803D', marginTop: 2, marginStart: 12 }}>
+                      {t('substituteOffer')
+                        .replace('{name}', sub.item.name)
+                        .replace('{qty}', formatQuantity(sub.quantity, sub.item.unit))
+                        .replace('{price}', formatPrice(lineTotal(sub.item.price, sub.quantity)))}
+                    </ThemedText>
+                  )}
+                </View>
+              );
+            })}
+            {substitutes.length > 0 && (
+              <TouchableOpacity
+                style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: '#15803D', borderColor: '#15803D' }]}
+                onPress={() => handleDecision('accept')}
+                disabled={!!deciding}
+              >
+                {deciding === 'accept' ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <ThemedText size="xs" weight="extrabold" numberOfLines={1} style={{ color: '#fff' }}>
+                    {t('acceptSubstitutes')} · {formatPrice(totalWithSubstitutes)}
+                  </ThemedText>
+                )}
+              </TouchableOpacity>
+            )}
             <View style={styles.decisionActions}>
               <TouchableOpacity
                 style={[styles.decisionBtn, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}
@@ -211,6 +279,57 @@ export default function OrderDetailsScreen() {
               )}
             </View>
           </View>
+        )}
+
+        {/* Out for delivery: the code proves the customer got it; the driver can be reached */}
+        {outForDelivery && order.deliveryCode && (
+          <View style={[styles.codeBox, { backgroundColor: theme.background.card, borderColor: theme.primary[500] }]}>
+            <ThemedText size="xs" weight="bold" variant="tertiary">{t('deliveryCodeTitle')}</ThemedText>
+            <ThemedText size="3xl" weight="extrabold" style={[styles.code, { color: theme.primary[500] }]} selectable>
+              {order.deliveryCode}
+            </ThemedText>
+            <ThemedText variant="tertiary" size="xs" style={{ textAlign: 'center', lineHeight: 18 }}>
+              {t('deliveryCodeHint')}
+            </ThemedText>
+          </View>
+        )}
+        {outForDelivery && order.driver && (
+          <View style={[styles.card, styles.driverCard, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
+            <View style={[styles.driverIcon, { backgroundColor: theme.primary[50] }]}>
+              <Ionicons name="bicycle" size={22} color={theme.primary[500]} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ThemedText variant="tertiary" size="xs">{t('yourDriver')}</ThemedText>
+              <ThemedText size="base" weight="extrabold">{order.driver.name}</ThemedText>
+            </View>
+            <TouchableOpacity
+              style={[styles.roundBtn, { backgroundColor: theme.primary[50] }]}
+              onPress={() => Linking.openURL(`tel:${order.driver!.phone}`)}
+              accessibilityLabel={t('callDriver')}
+            >
+              <Ionicons name="call" size={18} color={theme.primary[500]} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.roundBtn, { backgroundColor: '#DCFCE7' }]}
+              onPress={() => Linking.openURL(`https://wa.me/${whatsappNumber(order.driver!.phone)}`)}
+              accessibilityLabel={t('whatsappDriver')}
+            >
+              <Ionicons name="logo-whatsapp" size={18} color="#16A34A" />
+            </TouchableOpacity>
+          </View>
+        )}
+        {outForDelivery && (
+          <TouchableOpacity
+            style={[styles.payButton, { backgroundColor: '#15803D', marginTop: 0, marginBottom: 16 }, confirming && { opacity: 0.7 }]}
+            onPress={handleReceived}
+            disabled={confirming}
+          >
+            {confirming ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText size="base" weight="extrabold" style={{ color: '#fff' }}>{t('receivedButton')}</ThemedText>
+            )}
+          </TouchableOpacity>
         )}
 
         {/* Status timeline */}
@@ -294,8 +413,16 @@ export default function OrderDetailsScreen() {
         <View style={[styles.card, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           <View style={styles.summaryRow}>
             <ThemedText variant="tertiary" size="sm">{t('subtotal')}</ThemedText>
-            <ThemedText size="sm" weight="bold">{formatPrice(order.totalAmount - deliveryFee)}</ThemedText>
+            <ThemedText size="sm" weight="bold">{formatPrice(order.totalAmount - deliveryFee + discount)}</ThemedText>
           </View>
+          {discount > 0 && (
+            <View style={styles.summaryRow}>
+              <ThemedText variant="tertiary" size="sm">
+                {t('discount')}{order.promoCode ? ` · ${order.promoCode}` : ''}
+              </ThemedText>
+              <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>−{formatPrice(discount)}</ThemedText>
+            </View>
+          )}
           <View style={styles.summaryRow}>
             <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
             <ThemedText size="sm" weight="bold" style={deliveryFee === 0 ? { color: theme.status.success } : undefined}>
@@ -396,6 +523,40 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
+  },
+  codeBox: {
+    alignItems: 'center',
+    borderWidth: 2,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
+  },
+  code: {
+    letterSpacing: 8,
+    marginVertical: 8,
+  },
+  driverCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  driverIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roundBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  decisionWide: {
+    marginTop: 12,
   },
   hero: {
     alignItems: 'center',

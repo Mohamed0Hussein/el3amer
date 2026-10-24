@@ -12,7 +12,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useLocalization } from "@/context/LocalizationContext";
 import { useTheme } from "@/hooks/useTheme";
+import Constants from "expo-constants";
 import { Image } from "expo-image";
+import * as Updates from "expo-updates";
 
 export default function ProfileScreen() {
   const { favorites } = useFavorites();
@@ -79,12 +81,21 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Which build and which instant update is running, for support. */}
+        <ThemedText variant="tertiary" size="xs" style={styles.version}>
+          v{Constants.nativeAppVersion ?? Constants.expoConfig?.version} · {Updates.updateId ? `${Updates.updateId.slice(0, 8)} (${Updates.createdAt?.toISOString().slice(0, 10)})` : 'built-in'}
+        </ThemedText>
       </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  version: {
+    textAlign: 'center',
+    marginTop: 24,
+  },
   container: {
     flex: 1,
   },

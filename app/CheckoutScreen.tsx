@@ -1,7 +1,7 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
-import { DELIVERY_ZONE, isInDeliveryZone } from '@/constants/deliveryZone';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
@@ -10,7 +10,9 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/hooks/useTheme';
-import { createOrder, getPaymentConfig } from '@/services/orders';
+import { createOrder, getPaymentConfig, quoteOrder } from '@/services/orders';
+import { isBusy, isClosed } from '@/services/settings';
+import { PromoError } from '@/types/Order';
 import { getUserInfo } from '@/services/user';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -31,6 +33,8 @@ export default function CheckoutScreen() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [isPlacing, setIsPlacing] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState<string | null>(null);
 
   const { data: me } = useQuery({
     queryKey: ['me', user?.id],
@@ -46,17 +50,30 @@ export default function CheckoutScreen() {
   const method: PaymentMethod = payConfig?.card ? paymentMethod : 'cash';
 
   const settings = useStoreSettings();
-  const closed = settings?.isOpen === false;
-  const fee = settings?.deliveryFee;
-  const total = cartTotal + (fee ?? 0);
-
   const shippingAddress: string | undefined = me?.user?.address;
-  // Only pins can be checked; the server also rejects out-of-zone orders.
   const pin = me?.user?.latitude != null ? { latitude: me.user.latitude, longitude: me.user.longitude } : null;
-  const outsideZone = !!pin && !isInDeliveryZone(pin);
   const phone: string | undefined = me?.user?.phone;
-  // Waits for the settings so the total shown is the one that gets charged.
-  const canOrder = !!shippingAddress && !!phone && !outsideZone && !!settings && !closed;
+
+  // The backend prices it all: the pin's zone fee, the promo discount, the total.
+  const items = cart.map((item) => ({ itemId: Number(item.id), quantity: item.quantity }));
+  const { data: quote, refetch: requote, isFetching: quoting } = useQuery({
+    queryKey: ['quote', items, pin?.latitude, pin?.longitude, promo],
+    queryFn: () => quoteOrder({ items, shippingLatitude: pin!.latitude, shippingLongitude: pin!.longitude, promoCode: promo ?? undefined }),
+    enabled: !!pin && items.length > 0,
+  });
+
+  const closed = quote ? quote.storeStatus === 'closed' : isClosed(settings);
+  const busy = quote ? quote.storeStatus === 'busy' : isBusy(settings);
+  const outsideZone = !!quote && !quote.deliverable;
+  const fee = quote?.fee ?? undefined;
+  const discount = quote?.discount ?? 0;
+  const total = quote?.total ?? cartTotal + (fee ?? 0);
+  const promoMessage = (error: PromoError) =>
+    error.error === 'minOrder'
+      ? t('promoMinOrder').replace('{min}', formatPrice(error.minOrder ?? 0))
+      : t(({ invalid: 'promoInvalid', expired: 'promoExpired', usedUp: 'promoUsedUp', alreadyUsed: 'promoAlreadyUsed' } as const)[error.error]);
+  // Waits for the quote so the total shown is the one that gets charged.
+  const canOrder = !!shippingAddress && !!phone && !!pin && !!quote && quote.deliverable && !closed && !quoting;
 
   const handleConfirm = async () => {
     if (!user || cart.length === 0 || !canOrder) return;
@@ -65,8 +82,12 @@ export default function CheckoutScreen() {
     try {
       const { order, paymentUrl } = await createOrder({
         userId: Number(user.id),
-        items: cart.map((item) => ({ itemId: Number(item.id), quantity: item.quantity })),
+        items,
         shippingAddress,
+        shippingLatitude: pin!.latitude,
+        shippingLongitude: pin!.longitude,
+        deliveryFee: quote!.fee ?? undefined,
+        promoCode: promo && !quote!.promoError ? promo : undefined,
         paymentMethod: method,
         language,
       });
@@ -79,9 +100,18 @@ export default function CheckoutScreen() {
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
-      if (error?.response?.status === 409) {
+      const data = error?.response?.data;
+      if (error?.response?.status === 409 && data?.deliveryFee !== undefined) {
+        // Zones changed since the quote: show the new fee before ordering.
+        requote();
+        Alert.alert(t('feeChangedTitle'), t('feeChangedBody').replace('{fee}', formatPrice(data.deliveryFee)));
+      } else if (error?.response?.status === 409) {
         queryClient.invalidateQueries({ queryKey: ['settings'] });
+        requote();
         Alert.alert(t('storeClosedTitle'), t('storeClosedBody'));
+      } else if (data?.promoError) {
+        requote();
+        Alert.alert(t('promoCode'), promoMessage(data.promoError));
       } else {
         Alert.alert(t('orderFailed'), t('orderFailedMessage'));
       }
@@ -143,7 +173,7 @@ export default function CheckoutScreen() {
                 {t('outsideZoneTitle')}
               </ThemedText>
               <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
-                {t('outsideZoneBody').replace('{km}', String(DELIVERY_ZONE.radiusKm))}
+                {t('outsideZoneBody')}
               </ThemedText>
             </View>
           </View>
@@ -160,6 +190,57 @@ export default function CheckoutScreen() {
                 {t('storeClosedBody')}
               </ThemedText>
             </View>
+          </View>
+        )}
+
+        {busy && !closed && (
+          <View style={[styles.zoneWarning, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+            <Ionicons name="time-outline" size={18} color="#B45309" />
+            <View style={{ flex: 1 }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: '#B45309' }}>
+                {t('storeBusyTitle')}
+              </ThemedText>
+              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+                {t('storeBusyBody').replace('{eta}', String(quote?.etaMinutes ?? settings?.busyEtaMinutes ?? 60))}
+              </ThemedText>
+            </View>
+          </View>
+        )}
+
+        {/* Promo code */}
+        <ThemedText size="sm" weight="extrabold" style={styles.sectionTitle}>{t('promoCode')}</ThemedText>
+        {promo ? (
+          <View style={[styles.promoApplied, { backgroundColor: theme.background.card, borderColor: quote?.promoError ? '#FECACA' : theme.status.success }]}>
+            <Ionicons name={quote?.promoError ? 'alert-circle' : 'pricetag'} size={18} color={quote?.promoError ? '#B91C1C' : theme.status.success} />
+            <View style={{ flex: 1 }}>
+              <ThemedText size="sm" weight="extrabold">{promo}</ThemedText>
+              <ThemedText size="xs" style={{ color: quote?.promoError ? '#B91C1C' : theme.status.success, marginTop: 2 }}>
+                {quote?.promoError ? promoMessage(quote.promoError) : quote ? t('promoSaved').replace('{amount}', formatPrice(discount)) : '…'}
+              </ThemedText>
+            </View>
+            <TouchableOpacity onPress={() => setPromo(null)} hitSlop={10}>
+              <ThemedText size="xs" weight="bold" style={{ color: theme.primary[500] }}>{t('remove')}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.promoRow}>
+            <View style={{ flex: 1 }}>
+              <ThemedTextInput
+                value={promoInput}
+                onChangeText={setPromoInput}
+                placeholder={t('promoPlaceholder')}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                containerStyle={{ marginBottom: 0 }}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.applyBtn, { backgroundColor: theme.primary[500] }, !promoInput.trim() && { opacity: 0.5 }]}
+              onPress={() => setPromo(promoInput.trim().toUpperCase())}
+              disabled={!promoInput.trim()}
+            >
+              <ThemedText variant="inverse" size="sm" weight="extrabold">{t('apply')}</ThemedText>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -197,8 +278,16 @@ export default function CheckoutScreen() {
             <ThemedText variant="tertiary" size="sm">{t('subtotal')}</ThemedText>
             <ThemedText size="sm" weight="bold">{formatPrice(cartTotal)}</ThemedText>
           </View>
+          {discount > 0 && (
+            <View style={styles.summaryRow}>
+              <ThemedText variant="tertiary" size="sm">{t('discount')}</ThemedText>
+              <ThemedText size="sm" weight="bold" style={{ color: theme.status.success }}>−{formatPrice(discount)}</ThemedText>
+            </View>
+          )}
           <View style={styles.summaryRow}>
-            <ThemedText variant="tertiary" size="sm">{t('deliveryFee')}</ThemedText>
+            <ThemedText variant="tertiary" size="sm">
+              {t('deliveryFee')}{quote?.zoneName ? ` · ${quote.zoneName}` : ''}
+            </ThemedText>
             <ThemedText size="sm" weight="bold" style={fee === 0 ? { color: theme.status.success } : undefined}>
               {fee === undefined ? '…' : fee > 0 ? formatPrice(fee) : t('free')}
             </ThemedText>
@@ -284,6 +373,26 @@ const styles = StyleSheet.create({
   },
   paymentList: {
     gap: 10,
+  },
+  promoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  applyBtn: {
+    paddingHorizontal: 18,
+    height: 56,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promoApplied: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
   },
   paymentRow: {
     flexDirection: 'row',

@@ -3,6 +3,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Skeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { formatCount } from '@/constants/format';
 import { ROUTES } from '@/constants/routes';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -54,7 +55,7 @@ export default function OrdersScreen() {
 
         <View style={styles.orderFooter}>
           <ThemedText variant="tertiary" size="sm">
-            {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+            {formatCount(order.items.length)}
           </ThemedText>
           <ThemedText size="base" weight="extrabold" style={{ color: theme.primary[500] }}>
             {formatPrice(order.totalAmount)}

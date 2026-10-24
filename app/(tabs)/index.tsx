@@ -16,6 +16,8 @@ import { useCartContext } from '@/context/CartContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useProducts } from '@/hooks/useProducts';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useMyDelivery } from '@/hooks/useMyDelivery';
+import { etaOf, isBusy, isClosed } from '@/services/settings';
 import { Category } from '@/types/Category';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
@@ -70,6 +72,8 @@ export default function HomeScreen() {
   const { products, total, isLoading, refetch, isRefetching, loadMore, isFetchingNextPage } =
     useProducts({ search, sort: sortBy });
   const settings = useStoreSettings();
+  const delivery = useMyDelivery();
+  const myFee = delivery?.deliverable ? delivery.fee : null;
 
   const { data: fetchedCategories = [] } = useQuery({
     queryKey: ['categories'],
@@ -110,19 +114,20 @@ export default function HomeScreen() {
     () => [
       {
         eyebrow: t('bannerEyebrow1'),
-        title: t('bannerTitle1').replace('{eta}', String(settings?.etaMinutes ?? 30)),
+        title: t('bannerTitle1').replace('{eta}', String(etaOf(settings))),
         sub: t('bannerSub1'),
       },
       {
         eyebrow: t('bannerEyebrow2'),
-        title: settings?.deliveryFee
-          ? t('bannerTitle2').replace('{fee}', formatPrice(settings.deliveryFee))
-          : t('freeDeliveryAll'),
+        // The fee of the customer's own zone, once they have a pin.
+        title: myFee == null
+          ? t('feeByArea')
+          : myFee > 0 ? t('bannerTitle2').replace('{fee}', formatPrice(myFee)) : t('freeDeliveryAll'),
         sub: t('bannerSub2'),
       },
       { eyebrow: t('bannerEyebrow3'), title: t('bannerTitle3'), sub: t('bannerSub3') },
     ],
-    [t, settings, formatPrice],
+    [t, settings, formatPrice, myFee],
   );
 
   const greeting = useMemo(() => {
@@ -184,7 +189,19 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {settings?.isOpen === false && (
+      {isBusy(settings) && (
+        <View style={[styles.closedNotice, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+          <Ionicons name="time-outline" size={18} color="#B45309" />
+          <View style={{ flex: 1 }}>
+            <ThemedText size="xs" weight="extrabold" style={{ color: '#B45309' }}>{t('storeBusyTitle')}</ThemedText>
+            <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+              {t('storeBusyBody').replace('{eta}', String(etaOf(settings)))}
+            </ThemedText>
+          </View>
+        </View>
+      )}
+
+      {isClosed(settings) && (
         <View style={[styles.closedNotice, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
           <Ionicons name="moon-outline" size={18} color="#B91C1C" />
           <View style={{ flex: 1 }}>

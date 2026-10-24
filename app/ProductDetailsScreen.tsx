@@ -7,6 +7,8 @@ import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useProducts } from '@/hooks/useProducts';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useMyDelivery } from '@/hooks/useMyDelivery';
+import { etaOf } from '@/services/settings';
 import { useTheme } from '@/hooks/useTheme';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +30,8 @@ export default function ProductDetailsScreen() {
   const insets = useSafeAreaInsets();
   const formatPrice = useCurrency();
   const settings = useStoreSettings();
+  const delivery = useMyDelivery();
+  const myFee = delivery?.deliverable ? delivery.fee : null;
 
   const isFav = favorites.includes(product.id);
   const step = stepOf(product);
@@ -139,15 +143,13 @@ export default function ProductDetailsScreen() {
             <Ionicons name="time-outline" size={20} color={theme.primary[700]} />
             <View style={{ flex: 1 }}>
               <ThemedText size="sm" weight="bold">
-                {t('deliveryEta').replace('{eta}', String(settings?.etaMinutes ?? 30))}
+                {t('deliveryEta').replace('{eta}', String(etaOf(settings)))}
               </ThemedText>
-              {settings && (
-                <ThemedText size="xs" style={{ color: theme.primary[700], marginTop: 1 }}>
-                  {settings.deliveryFee > 0
-                    ? t('deliveryFeeAll').replace('{fee}', formatPrice(settings.deliveryFee))
-                    : t('freeDeliveryAll')}
-                </ThemedText>
-              )}
+              <ThemedText size="xs" style={{ color: theme.primary[700], marginTop: 1 }}>
+                {myFee == null
+                  ? t('feeByArea')
+                  : myFee > 0 ? t('deliveryFeeAll').replace('{fee}', formatPrice(myFee)) : t('freeDeliveryAll')}
+              </ThemedText>
             </View>
           </View>
         </View>

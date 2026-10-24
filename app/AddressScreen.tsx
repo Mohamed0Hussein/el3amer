@@ -4,11 +4,13 @@ import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
-import { DELIVERY_ZONE, isInDeliveryZone, Point } from '@/constants/deliveryZone';
+import { DELIVERY_ZONE, Point } from '@/constants/deliveryZone';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalization } from '@/context/LocalizationContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { useTheme } from '@/hooks/useTheme';
 import { getUserInfo, updateUser } from '@/services/user';
+import { checkDelivery, getZoneMap } from '@/services/zones';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
@@ -37,6 +39,7 @@ const ensureLocationPermission = async () => {
 export default function AddressScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
+  const formatPrice = useCurrency();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -59,8 +62,17 @@ export default function AddressScreen() {
       ? { latitude: data.user.latitude, longitude: data.user.longitude }
       : null;
 
-  const outsideZone = !!point && !isInDeliveryZone(point);
-  const outsideZoneMessage = t('outsideZoneBody').replace('{km}', String(DELIVERY_ZONE.radiusKm));
+  const { data: zones } = useQuery({ queryKey: ['zoneMap'], queryFn: getZoneMap, staleTime: 5 * 60_000 });
+  // Rounded so small drags don't refetch; the backend has the final say anyway.
+  const key = point ? [point.latitude.toFixed(4), point.longitude.toFixed(4)] : null;
+  const { data: delivery } = useQuery({
+    queryKey: ['delivery', key],
+    queryFn: () => checkDelivery(point!.latitude, point!.longitude),
+    enabled: !!point,
+    staleTime: 60_000,
+  });
+  const outsideZone = !!point && delivery?.deliverable === false;
+  const outsideZoneMessage = t('outsideZoneBody');
 
   useEffect(() => {
     setAddress(data?.user?.address || '');
@@ -114,6 +126,7 @@ export default function AddressScreen() {
     try {
       await updateUser(String(user.id), { address: address.trim(), ...(point ?? {}) });
       await queryClient.invalidateQueries({ queryKey: ['me', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['quote'] });
       Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
         { text: t('ok'), onPress: () => router.back() },
       ]);
@@ -138,7 +151,7 @@ export default function AddressScreen() {
             <ActivityIndicator style={StyleSheet.absoluteFill} color={theme.primary[500]} />
           ) : (
             // No saved pin yet: start on the store with the whole zone in view.
-            <PinMap ref={mapRef} initial={saved ?? DELIVERY_ZONE.center} zoom={saved ? 17 : null} onMove={onMapMove} />
+            <PinMap ref={mapRef} initial={saved ?? DELIVERY_ZONE.center} zoom={saved ? 17 : null} zones={zones} onMove={onMapMove} />
           )}
 
           {/* Fixed center pin: the map moves under it. Tip sits on the center. */}
@@ -173,7 +186,9 @@ export default function AddressScreen() {
           </View>
         ) : (
           <ThemedText variant="tertiary" size="xs" style={styles.pinHint}>
-            {t('pinHint')}
+            {delivery?.deliverable && delivery.fee != null
+              ? t('zoneFeeHint').replace('{fee}', delivery.fee > 0 ? formatPrice(delivery.fee) : t('free'))
+              : t('pinHint')}
           </ThemedText>
         )}
 
