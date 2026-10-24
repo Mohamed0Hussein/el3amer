@@ -84,7 +84,7 @@ export default function ProfileScreen() {
 
         {/* Which build and which instant update is running, for support. */}
         <ThemedText variant="tertiary" size="xs" style={styles.version}>
-          v{Constants.nativeAppVersion ?? Constants.expoConfig?.version} · {Updates.updateId ? `${Updates.updateId.slice(0, 8)} (${Updates.createdAt?.toISOString().slice(0, 10)})` : 'built-in'}
+          v{Updates.runtimeVersion || Constants.expoConfig?.version} · {Updates.updateId ? `${Updates.updateId.slice(0, 8)} (${Updates.createdAt?.toISOString().slice(0, 10)})` : 'built-in'}
         </ThemedText>
       </ScrollView>
     </ThemedView>

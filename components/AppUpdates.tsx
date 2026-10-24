@@ -3,7 +3,6 @@ import { ThemedText } from '@/components/themed-text';
 import { env } from '@/config/env';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useTheme } from '@/hooks/useTheme';
-import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Updates from 'expo-updates';
@@ -23,6 +22,11 @@ export const isOlder = (a: string, b: string) => {
 };
 
 const CHECK_EVERY_MS = 15 * 60 * 1000;
+
+// The installed APK's version. runtimeVersion follows app.json "version" (the
+// appVersion policy) and comes from the native build, so an instant update
+// can't change it. (Constants.nativeAppVersion is always empty on this SDK.)
+const installedVersion = () => Updates.runtimeVersion || null;
 const FLAG_GRANT_READ_URI_PERMISSION = 1;
 
 // Downloads the APK into the app's cache and opens Android's installer on it;
@@ -96,12 +100,15 @@ export function AppUpdates({ app }: { app: 'customer' | 'store' }) {
       if (__DEV__ || Date.now() - lastCheck.current < CHECK_EVERY_MS) return;
       lastCheck.current = Date.now();
       try {
-        const release: Release = await fetch(`${env.apiOrigin}/api/v1/app-version/${app}`).then((r) => r.json());
-        const current = Constants.nativeAppVersion ?? '0';
+        const release: Release = await fetch(`${env.apiOrigin}/api/v1/app-version/${app}?client=2`).then((r) => r.json());
+        const current = installedVersion();
+        // Unknown version: never block or nag.
+        if (!current) return;
         if (release.url && isOlder(current, release.minimum)) {
           setRequired(release);
           return;
         }
+        setRequired(null);
         if (release.url && isOlder(current, release.latest) && offered.current !== release.latest) {
           offered.current = release.latest;
           Alert.alert(t('newVersionTitle'), t('newVersionBody'), [
