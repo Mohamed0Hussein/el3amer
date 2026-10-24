@@ -46,7 +46,7 @@ export default function ForgotPasswordScreen() {
       Alert.alert(t('error'), t('enterCode'));
       return;
     }
-    if (newPass.length < 6) {
+    if (newPass.length < 8 || newPass.length > 72) {
       Alert.alert(t('error'), t('passwordMin'));
       return;
     }

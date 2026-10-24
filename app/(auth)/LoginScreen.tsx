@@ -47,12 +47,6 @@ export default function LoginScreen() {
       return;
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      Alert.alert(t('error'), t('passwordMin'));
-      return;
-    }
-
     try {
       await loginUser(email, password);
       // Navigation will happen automatically via RootNavigator when user is set

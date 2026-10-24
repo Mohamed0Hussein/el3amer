@@ -53,7 +53,7 @@ export default function SignUpScreen() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8 || password.length > 72) {
       Alert.alert(t('error'), t('passwordMin'));
       return;
     }

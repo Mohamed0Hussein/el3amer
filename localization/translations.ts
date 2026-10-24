@@ -212,7 +212,7 @@ export const translations = {
     // Alerts
     fillAllFields: 'Please fill in all fields',
     passwordsNoMatch: 'Passwords do not match',
-    passwordMin: 'Password must be at least 6 characters',
+    passwordMin: 'Password must be 8 to 72 characters',
     error: 'Error',
     invalidEmail: 'Please enter a valid email address',
     loginFailed: 'Login Failed',
@@ -518,7 +518,7 @@ export const translations = {
     // Alerts
     fillAllFields: 'يرجى تعبئة جميع الحقول',
     passwordsNoMatch: 'كلمتا المرور غير متطابقتين',
-    passwordMin: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
+    passwordMin: 'يجب أن تكون كلمة المرور من 8 إلى 72 حرفًا',
     error: 'خطأ',
     invalidEmail: 'يرجى إدخال عنوان بريد إلكتروني صحيح',
     loginFailed: 'فشل تسجيل الدخول',
