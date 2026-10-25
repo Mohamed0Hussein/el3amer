@@ -30,7 +30,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, router, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import React, { useEffect } from "react";
-import { ActivityIndicator, StatusBar, View } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
+import { ActivityIndicator, Platform, StatusBar, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 setupGlobalErrorHandler();
@@ -54,6 +55,10 @@ function useProtectedRoute(isAuthenticated: boolean, isHydrating: boolean) {
 function RootNavigator() {
   const { user, isAuthenticated, isHydrating } = useAuth();
   const { theme, isDark } = useTheme();
+  // Android only picks the bottom bar's look at launch; follow live theme switches too.
+  useEffect(() => {
+    if (Platform.OS === 'android') NavigationBar.setStyle(isDark ? 'light' : 'dark');
+  }, [isDark]);
   const { language } = useLocalization();
   const insets = useSafeAreaInsets();
 
