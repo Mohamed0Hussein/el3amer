@@ -39,14 +39,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Cycled tint palette for category chips, matching the el3amer brand sheet.
-const CATEGORY_TINTS = [
-  { bg: '#FFF3EB', ink: '#C94A0A' },
-  { bg: '#FFFBEB', ink: '#A16207' },
-  { bg: '#E4F2F1', ink: '#0F6F6C' },
-  { bg: '#FEF2F2', ink: '#B91C1C' },
-  { bg: '#EFF6FF', ink: '#2563EB' },
-  { bg: '#F0FDF4', ink: '#15803D' },
-  { bg: '#FAF6F2', ink: '#7C6F60' },
+// Taken from the theme so the chips stay soft in dark mode too.
+const categoryTints = (theme: ReturnType<typeof useTheme>['theme']) => [
+  { bg: theme.primary[50], ink: theme.primary[500] },
+  { bg: theme.tint.warning.bg, ink: theme.tint.warning.strong },
+  { bg: theme.tint.teal.bg, ink: theme.tint.teal.strong },
+  { bg: theme.tint.error.bg, ink: theme.tint.error.strong },
+  { bg: theme.tint.info.bg, ink: theme.tint.info.strong },
+  { bg: theme.tint.success.bg, ink: theme.tint.success.strong },
+  { bg: theme.gray[100], ink: theme.text.tertiary },
 ];
 
 export default function HomeScreen() {
@@ -190,11 +191,11 @@ export default function HomeScreen() {
       </View>
 
       {isBusy(settings) && (
-        <View style={[styles.closedNotice, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-          <Ionicons name="time-outline" size={18} color="#B45309" />
+        <View style={[styles.closedNotice, { backgroundColor: theme.tint.warning.bg, borderColor: theme.tint.warning.border }]}>
+          <Ionicons name="time-outline" size={18} color={theme.tint.warning.strong} />
           <View style={{ flex: 1 }}>
-            <ThemedText size="xs" weight="extrabold" style={{ color: '#B45309' }}>{t('storeBusyTitle')}</ThemedText>
-            <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+            <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.warning.strong }}>{t('storeBusyTitle')}</ThemedText>
+            <ThemedText size="xs" style={{ color: theme.tint.warning.text, marginTop: 2, lineHeight: 17 }}>
               {t('storeBusyBody').replace('{eta}', String(etaOf(settings)))}
             </ThemedText>
           </View>
@@ -202,11 +203,11 @@ export default function HomeScreen() {
       )}
 
       {isClosed(settings) && (
-        <View style={[styles.closedNotice, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-          <Ionicons name="moon-outline" size={18} color="#B91C1C" />
+        <View style={[styles.closedNotice, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
+          <Ionicons name="moon-outline" size={18} color={theme.tint.error.strong} />
           <View style={{ flex: 1 }}>
-            <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>{t('storeClosedTitle')}</ThemedText>
-            <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>{t('storeClosedBody')}</ThemedText>
+            <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.error.strong }}>{t('storeClosedTitle')}</ThemedText>
+            <ThemedText size="xs" style={{ color: theme.tint.error.text, marginTop: 2, lineHeight: 17 }}>{t('storeClosedBody')}</ThemedText>
           </View>
         </View>
       )}
@@ -248,7 +249,8 @@ export default function HomeScreen() {
         contentContainerStyle={styles.categoriesContent}
       >
         {categories.map((cat, index) => {
-          const tint = CATEGORY_TINTS[index % CATEGORY_TINTS.length];
+          const tints = categoryTints(theme);
+          const tint = tints[index % tints.length];
           return (
             <TouchableOpacity
               key={cat.id}
@@ -272,7 +274,7 @@ export default function HomeScreen() {
                 size="xs"
                 weight="bold"
                 style={styles.categoryLabel}
-                numberOfLines={1}
+                numberOfLines={2}
               >
                 {cat.name}
               </ThemedText>
@@ -528,13 +530,13 @@ const styles = StyleSheet.create({
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    gap: 16,
+    gap: 10,
     paddingVertical: 6,
   },
   categoryItem: {
     alignItems: 'center',
     gap: 7,
-    width: 68,
+    width: 76,
   },
   categoryCircle: {
     width: 56,
@@ -545,6 +547,7 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     textAlign: 'center',
+    lineHeight: 15,
   },
   sortContainer: {
     flexDirection: 'row',

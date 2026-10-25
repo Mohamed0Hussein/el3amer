@@ -51,7 +51,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
           <Ionicons
             name={isFav ? 'heart' : 'heart-outline'}
             size={15}
-            color={isFav ? theme.status.error : theme.gray[500]}
+            color={isFav ? theme.status.error : '#7C6F60'}
           />
         </TouchableOpacity>
       </View>
@@ -59,8 +59,10 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
       <ThemedText size="sm" weight="bold" numberOfLines={2} style={styles.name}>
         {product.name}
       </ThemedText>
-      <ThemedText variant="tertiary" size="xs">{formatUnit(product.unit)}</ThemedText>
+      <ThemedText variant="tertiary" size="xs" style={{ marginTop: 2 }}>{formatUnit(product.unit)}</ThemedText>
 
+      {/* Pushes price to the card bottom, so rows line up whatever the name length */}
+      <View style={{ flex: 1 }} />
       <View style={styles.bottomRow}>
         <ThemedText
           size="base"
@@ -139,7 +141,6 @@ const styles = StyleSheet.create({
   },
   name: {
     marginTop: 9,
-    minHeight: 36,
     lineHeight: 18,
   },
   bottomRow: {

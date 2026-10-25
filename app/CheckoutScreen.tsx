@@ -166,13 +166,13 @@ export default function CheckoutScreen() {
           </TouchableOpacity>
         </View>
         {outsideZone && (
-          <View style={[styles.zoneWarning, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-            <Ionicons name="alert-circle" size={18} color="#B91C1C" />
+          <View style={[styles.zoneWarning, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
+            <Ionicons name="alert-circle" size={18} color={theme.tint.error.strong} />
             <View style={{ flex: 1 }}>
-              <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.error.strong }}>
                 {t('outsideZoneTitle')}
               </ThemedText>
-              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+              <ThemedText size="xs" style={{ color: theme.tint.error.text, marginTop: 2, lineHeight: 17 }}>
                 {t('outsideZoneBody')}
               </ThemedText>
             </View>
@@ -180,13 +180,13 @@ export default function CheckoutScreen() {
         )}
 
         {closed && (
-          <View style={[styles.zoneWarning, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-            <Ionicons name="moon-outline" size={18} color="#B91C1C" />
+          <View style={[styles.zoneWarning, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
+            <Ionicons name="moon-outline" size={18} color={theme.tint.error.strong} />
             <View style={{ flex: 1 }}>
-              <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.error.strong }}>
                 {t('storeClosedTitle')}
               </ThemedText>
-              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+              <ThemedText size="xs" style={{ color: theme.tint.error.text, marginTop: 2, lineHeight: 17 }}>
                 {t('storeClosedBody')}
               </ThemedText>
             </View>
@@ -194,13 +194,13 @@ export default function CheckoutScreen() {
         )}
 
         {busy && !closed && (
-          <View style={[styles.zoneWarning, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-            <Ionicons name="time-outline" size={18} color="#B45309" />
+          <View style={[styles.zoneWarning, { backgroundColor: theme.tint.warning.bg, borderColor: theme.tint.warning.border }]}>
+            <Ionicons name="time-outline" size={18} color={theme.tint.warning.strong} />
             <View style={{ flex: 1 }}>
-              <ThemedText size="xs" weight="extrabold" style={{ color: '#B45309' }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.warning.strong }}>
                 {t('storeBusyTitle')}
               </ThemedText>
-              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+              <ThemedText size="xs" style={{ color: theme.tint.warning.text, marginTop: 2, lineHeight: 17 }}>
                 {t('storeBusyBody').replace('{eta}', String(quote?.etaMinutes ?? settings?.busyEtaMinutes ?? 60))}
               </ThemedText>
             </View>
@@ -210,11 +210,11 @@ export default function CheckoutScreen() {
         {/* Promo code */}
         <ThemedText size="sm" weight="extrabold" style={styles.sectionTitle}>{t('promoCode')}</ThemedText>
         {promo ? (
-          <View style={[styles.promoApplied, { backgroundColor: theme.background.card, borderColor: quote?.promoError ? '#FECACA' : theme.status.success }]}>
-            <Ionicons name={quote?.promoError ? 'alert-circle' : 'pricetag'} size={18} color={quote?.promoError ? '#B91C1C' : theme.status.success} />
+          <View style={[styles.promoApplied, { backgroundColor: theme.background.card, borderColor: quote?.promoError ? theme.tint.error.border : theme.status.success }]}>
+            <Ionicons name={quote?.promoError ? 'alert-circle' : 'pricetag'} size={18} color={quote?.promoError ? theme.tint.error.strong : theme.status.success} />
             <View style={{ flex: 1 }}>
               <ThemedText size="sm" weight="extrabold">{promo}</ThemedText>
-              <ThemedText size="xs" style={{ color: quote?.promoError ? '#B91C1C' : theme.status.success, marginTop: 2 }}>
+              <ThemedText size="xs" style={{ color: quote?.promoError ? theme.tint.error.strong : theme.status.success, marginTop: 2 }}>
                 {quote?.promoError ? promoMessage(quote.promoError) : quote ? t('promoSaved').replace('{amount}', formatPrice(discount)) : '…'}
               </ThemedText>
             </View>

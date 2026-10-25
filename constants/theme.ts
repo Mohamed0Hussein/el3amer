@@ -30,6 +30,16 @@ export const Colors = {
       warning: '#B45309',
       info: '#2563EB',
     },
+    // Status surfaces (notices, badges, the store open/busy/closed card):
+    // bg + border for the box, strong for its title/icon, text for its body,
+    // solid for a filled button on it (white label in both themes).
+    tint: {
+      success: { bg: '#F0FDF4', border: '#BBF7D0', strong: '#15803D', text: '#166534', solid: '#15803D' },
+      warning: { bg: '#FFFBEB', border: '#FDE68A', strong: '#B45309', text: '#92400E', solid: '#B45309' },
+      error: { bg: '#FEF2F2', border: '#FECACA', strong: '#B91C1C', text: '#991B1B', solid: '#B91C1C' },
+      info: { bg: '#EFF6FF', border: '#BFDBFE', strong: '#1D4ED8', text: '#1E40AF', solid: '#1D4ED8' },
+      teal: { bg: '#E4F2F1', border: '#B5DCD9', strong: '#0F6F6C', text: '#0B5553', solid: '#0F6F6C' },
+    },
     background: {
       primary: '#EFE7DE',
       secondary: '#FFFBF7',
@@ -72,6 +82,13 @@ export const Colors = {
       error: '#F87171',
       warning: '#F59E0B',
       info: '#60A5FA',
+    },
+    tint: {
+      success: { bg: '#11251A', border: '#1F4A31', strong: '#4ADE80', text: '#BBF7D0', solid: '#15803D' },
+      warning: { bg: '#2A1F0C', border: '#5A4212', strong: '#FBBF24', text: '#FDE68A', solid: '#B45309' },
+      error: { bg: '#2D1515', border: '#5E2626', strong: '#F87171', text: '#FECACA', solid: '#B91C1C' },
+      info: { bg: '#101E33', border: '#1F3A60', strong: '#60A5FA', text: '#BFDBFE', solid: '#1D4ED8' },
+      teal: { bg: '#0E2423', border: '#1B4644', strong: '#5EC4BF', text: '#B5E6E3', solid: '#0F6F6C' },
     },
     background: {
       primary: '#14100C',

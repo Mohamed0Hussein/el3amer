@@ -193,11 +193,11 @@ export default function OrderDetailsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary[500]} colors={[theme.primary[500]]} />}
       >
         {/* Current status hero */}
-        <View style={[styles.hero, { backgroundColor: isCancelled ? '#FEF2F2' : theme.primary[50] }]}>
+        <View style={[styles.hero, { backgroundColor: isCancelled ? theme.tint.error.bg : theme.primary[50] }]}>
           <View style={[styles.heroIcon, { backgroundColor: isCancelled ? theme.status.error : theme.primary[500] }]}>
             <Ionicons name={STAGE_ICONS[order.status]} size={26} color="#fff" />
           </View>
-          <ThemedText size="lg" weight="extrabold" style={[{ marginTop: 12 }, isCancelled && { color: '#7F1D1D' }]}>
+          <ThemedText size="lg" weight="extrabold" style={[{ marginTop: 12 }, isCancelled && { color: theme.tint.error.strong }]}>
             {t(`status_${order.status}`)}
           </ThemedText>
           {!isCancelled && order.status !== 'delivered' && (
@@ -209,23 +209,22 @@ export default function OrderDetailsScreen() {
 
         {/* The store couldn't find some items: the customer decides */}
         {awaitingDecision && (
-          <View style={[styles.decisionBox, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-            <ThemedText size="sm" weight="extrabold" style={{ color: '#A16207' }}>
+          <View style={[styles.decisionBox, { backgroundColor: theme.tint.warning.bg, borderColor: theme.tint.warning.border }]}>
+            <ThemedText size="sm" weight="extrabold" style={{ color: theme.tint.warning.strong }}>
               {t('itemsUnavailableTitle')}
             </ThemedText>
-            {/* Light card in both themes, so its text colors are fixed too. */}
-            <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: '#57534E' }}>
+            <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: theme.tint.warning.text }}>
               {t(substitutes.length ? 'itemsUnavailableBodySubs' : 'itemsUnavailableBody')}
             </ThemedText>
             {unavailableItems.map((item) => {
               const sub = substitutes.find((s) => s.forItemId === item.id);
               return (
                 <View key={item.id} style={{ marginTop: 8 }}>
-                  <ThemedText size="sm" weight="bold" style={{ color: '#1C1917' }}>
+                  <ThemedText size="sm" weight="bold">
                     • {item.name} ({formatQuantity(item.quantity, item.unit)})
                   </ThemedText>
                   {sub && (
-                    <ThemedText size="xs" style={{ color: '#15803D', marginTop: 2, marginStart: 12 }}>
+                    <ThemedText size="xs" style={{ color: theme.tint.success.strong, marginTop: 2, marginStart: 12 }}>
                       {t('substituteOffer')
                         .replace('{name}', sub.item.name)
                         .replace('{qty}', formatQuantity(sub.quantity, sub.item.unit))
@@ -237,7 +236,7 @@ export default function OrderDetailsScreen() {
             })}
             {substitutes.length > 0 && (
               <TouchableOpacity
-                style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: '#15803D', borderColor: '#15803D' }]}
+                style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: theme.tint.success.solid, borderColor: theme.tint.success.solid }]}
                 onPress={() => handleDecision('accept')}
                 disabled={!!deciding}
               >
@@ -310,17 +309,17 @@ export default function OrderDetailsScreen() {
               <Ionicons name="call" size={18} color={theme.primary[500]} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.roundBtn, { backgroundColor: '#DCFCE7' }]}
+              style={[styles.roundBtn, { backgroundColor: theme.tint.success.bg }]}
               onPress={() => Linking.openURL(`https://wa.me/${whatsappNumber(order.driver!.phone)}`)}
               accessibilityLabel={t('whatsappDriver')}
             >
-              <Ionicons name="logo-whatsapp" size={18} color="#16A34A" />
+              <Ionicons name="logo-whatsapp" size={18} color={theme.tint.success.strong} />
             </TouchableOpacity>
           </View>
         )}
         {outForDelivery && (
           <TouchableOpacity
-            style={[styles.payButton, { backgroundColor: '#15803D', marginTop: 0, marginBottom: 16 }, confirming && { opacity: 0.7 }]}
+            style={[styles.payButton, { backgroundColor: theme.tint.success.solid, marginTop: 0, marginBottom: 16 }, confirming && { opacity: 0.7 }]}
             onPress={handleReceived}
             disabled={confirming}
           >
@@ -481,11 +480,11 @@ export default function OrderDetailsScreen() {
                 </ThemedText>
               </TouchableOpacity>
             ) : (
-              <View style={[styles.cancelBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                <ThemedText size="sm" weight="extrabold" style={{ color: '#B91C1C' }}>
+              <View style={[styles.cancelBox, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
+                <ThemedText size="sm" weight="extrabold" style={{ color: theme.tint.error.strong }}>
                   {t('cancelOrderQ')}
                 </ThemedText>
-                <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: '#7F1D1D' }}>
+                <ThemedText size="xs" style={{ marginTop: 4, lineHeight: 18, color: theme.tint.error.text }}>
                   {t('cancelOrderBody')}
                 </ThemedText>
                 <View style={styles.cancelActions}>
@@ -635,7 +634,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     padding: 14,
-    marginTop: 14,
+    marginBottom: 16,
   },
   decisionActions: {
     flexDirection: 'row',
