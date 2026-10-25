@@ -57,7 +57,7 @@ function RootNavigator() {
   const { theme, isDark } = useTheme();
   // Android only picks the bottom bar's look at launch; follow live theme switches too.
   useEffect(() => {
-    if (Platform.OS === 'android') NavigationBar.setStyle(isDark ? 'light' : 'dark');
+    if (Platform.OS === 'android') NavigationBar.setStyle(isDark ? 'dark' : 'light');
   }, [isDark]);
   const { language } = useLocalization();
   const insets = useSafeAreaInsets();
