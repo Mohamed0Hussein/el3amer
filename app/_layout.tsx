@@ -77,7 +77,7 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <NetworkBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -102,7 +102,7 @@ function RootNavigator() {
         pointerEvents="none"
         style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
-          backgroundColor: isDark ? theme.primary[400] : theme.primary[500],
+          backgroundColor: theme.background.primary,
         }}
       />
     </>

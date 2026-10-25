@@ -173,13 +173,13 @@ export default function AddressScreen() {
           </TouchableOpacity>
         </View>
         {outsideZone ? (
-          <View style={[styles.zoneWarning, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-            <Ionicons name="alert-circle" size={18} color="#B91C1C" />
+          <View style={[styles.zoneWarning, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
+            <Ionicons name="alert-circle" size={18} color={theme.tint.error.strong} />
             <View style={{ flex: 1 }}>
-              <ThemedText size="xs" weight="extrabold" style={{ color: '#B91C1C' }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.error.strong }}>
                 {t('outsideZoneTitle')}
               </ThemedText>
-              <ThemedText size="xs" style={{ color: '#7C6F60', marginTop: 2, lineHeight: 17 }}>
+              <ThemedText size="xs" style={{ color: theme.tint.error.text, marginTop: 2, lineHeight: 17 }}>
                 {outsideZoneMessage}
               </ThemedText>
             </View>

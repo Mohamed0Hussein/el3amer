@@ -41,7 +41,7 @@ export default function AboutScreen() {
               <ThemedText variant="tertiary" size="sm">Cairo, Egypt</ThemedText>
             </ThemedView>
           </View>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.gray[200] }]} />
           <View style={styles.infoRow}>
             <Ionicons name="mail-outline" size={24} color={theme.primary[500]} />
             <ThemedView variant="default" style={styles.infoText}>
@@ -49,7 +49,7 @@ export default function AboutScreen() {
               <ThemedText variant="tertiary" size="sm">support@el3amer.com</ThemedText>
             </ThemedView>
           </View>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.gray[200] }]} />
           <View style={styles.infoRow}>
             <Ionicons name="globe-outline" size={24} color={theme.primary[500]} />
             <ThemedView variant="default" style={styles.infoText}>
@@ -93,8 +93,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   divider: {
-    height: 1,
-    backgroundColor: '#eee',
+    height: StyleSheet.hairlineWidth,
   },
 });
 

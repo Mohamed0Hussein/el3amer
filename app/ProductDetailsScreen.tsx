@@ -94,7 +94,7 @@ export default function ProductDetailsScreen() {
 
         <View style={styles.content}>
           <View style={styles.badgeRow}>
-            <View style={[styles.pill, { backgroundColor: '#F0FDF4' }]}>
+            <View style={[styles.pill, { backgroundColor: theme.tint.success.bg }]}>
               <Ionicons name="leaf-outline" size={13} color={theme.status.success} />
               <ThemedText size="xs" weight="bold" style={{ color: theme.status.success }}>
                 {t('fresh')}
@@ -111,8 +111,8 @@ export default function ProductDetailsScreen() {
 
           {product.stock <= 5 && (
             <View style={styles.ratingRow}>
-              <View style={[styles.pill, { backgroundColor: '#FEFCE8' }]}>
-                <ThemedText size="xs" weight="bold" style={{ color: '#A16207' }}>
+              <View style={[styles.pill, { backgroundColor: theme.tint.warning.bg }]}>
+                <ThemedText size="xs" weight="bold" style={{ color: theme.tint.warning.strong }}>
                   {outOfStock ? t('outOfStock') : t('onlyLeft').replace('{n}', formatQuantity(product.stock, product.unit))}
                 </ThemedText>
               </View>
