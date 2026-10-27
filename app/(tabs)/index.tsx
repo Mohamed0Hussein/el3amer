@@ -23,7 +23,7 @@ import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { formatCount, imageUrl } from '@/constants/format';
+import { formatCount, imageUrl, localText } from '@/constants/format';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -276,7 +276,7 @@ export default function HomeScreen() {
                 style={styles.categoryLabel}
                 numberOfLines={2}
               >
-                {cat.name}
+                {localText(cat.name, cat.nameAr)}
               </ThemedText>
             </TouchableOpacity>
           );
@@ -305,7 +305,7 @@ export default function HomeScreen() {
                     <Image source={{ uri: photo }} style={styles.reorderThumbImage} contentFit="contain" />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <ThemedText size="xs" weight="bold" numberOfLines={1}>{item.name}</ThemedText>
+                    <ThemedText size="xs" weight="bold" numberOfLines={1}>{localText(item.name, item.nameAr)}</ThemedText>
                     <ThemedText variant="tertiary" size="xs" style={{ marginTop: 1 }}>
                       {formatPrice(item.price)}
                     </ThemedText>

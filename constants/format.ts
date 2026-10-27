@@ -4,9 +4,15 @@ import { SupportedLanguage, translations } from '@/localization/translations';
 // LocalizationProvider sets this, so the helpers below use the app's language
 // without every caller passing it in.
 let words: (typeof translations)[SupportedLanguage] = translations.en;
+let arabic = false;
 export const setFormatLanguage = (language: SupportedLanguage) => {
   words = translations[language];
+  arabic = language === 'ar';
 };
+
+// Products carry Arabic copies (nameAr, descriptionAr, categoryAr) that win in
+// Arabic; an empty one falls back to the English text.
+export const localText = (en?: string, ar?: string | null) => (arabic && ar) || en || '';
 
 // Backend units are enum-like strings ("PACK", "KG"); unknown ones are title-cased.
 export const formatUnit = (unit: string) =>

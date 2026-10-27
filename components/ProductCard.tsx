@@ -2,7 +2,7 @@ import { ROUTES } from '@/constants/routes';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useTheme } from '@/hooks/useTheme';
-import { formatQuantity, formatUnit, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
+import { formatQuantity, formatUnit, localText, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Product } from '@/types/Product';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,7 +57,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
       </View>
 
       <ThemedText size="sm" weight="bold" numberOfLines={2} style={styles.name}>
-        {product.name}
+        {localText(product.name, product.nameAr)}
       </ThemedText>
       <ThemedText variant="tertiary" size="xs" style={{ marginTop: 2 }}>{formatUnit(product.unit)}</ThemedText>
 

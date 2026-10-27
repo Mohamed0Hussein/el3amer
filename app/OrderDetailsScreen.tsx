@@ -1,7 +1,7 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { formatQuantity, formatUnit, lineTotal, priceWithUnit, imageUrl } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, localText, priceWithUnit, imageUrl } from '@/constants/format';
 import { ROUTES } from '@/constants/routes';
 import { useLocalization } from '@/context/LocalizationContext';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -163,7 +163,7 @@ export default function OrderDetailsScreen() {
         />
       </View>
       <View style={styles.itemInfo}>
-        <ThemedText size="sm" weight="bold" numberOfLines={1}>{item.name}</ThemedText>
+        <ThemedText size="sm" weight="bold" numberOfLines={1}>{localText(item.name, item.nameAr)}</ThemedText>
         <ThemedText variant="tertiary" size="xs" style={{ marginTop: 2 }}>
           {formatQuantity(item.quantity, item.unit)} × {priceWithUnit(formatPrice(item.price), item.unit)} · {formatUnit(item.unit)}
         </ThemedText>
@@ -221,12 +221,12 @@ export default function OrderDetailsScreen() {
               return (
                 <View key={item.id} style={{ marginTop: 8 }}>
                   <ThemedText size="sm" weight="bold">
-                    • {item.name} ({formatQuantity(item.quantity, item.unit)})
+                    • {localText(item.name, item.nameAr)} ({formatQuantity(item.quantity, item.unit)})
                   </ThemedText>
                   {sub && (
                     <ThemedText size="xs" style={{ color: theme.tint.success.strong, marginTop: 2, marginStart: 12 }}>
                       {t('substituteOffer')
-                        .replace('{name}', sub.item.name)
+                        .replace('{name}', localText(sub.item.name, sub.item.nameAr))
                         .replace('{qty}', formatQuantity(sub.quantity, sub.item.unit))
                         .replace('{price}', formatPrice(lineTotal(sub.item.price, sub.quantity)))}
                     </ThemedText>

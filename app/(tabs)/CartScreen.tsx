@@ -1,7 +1,7 @@
 import { ThemedButton } from '@/components/themed-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { formatCount, formatQuantity, formatUnit, lineTotal, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
+import { formatCount, formatQuantity, formatUnit, lineTotal, localText, maxQuantity, priceWithUnit, imageUrl } from '@/constants/format';
 import { useMyDelivery } from '@/hooks/useMyDelivery';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -142,7 +142,7 @@ const Cart = () => {
                   <View style={styles.cartItemTopRow}>
                     <View style={{ flex: 1 }}>
                       <ThemedText variant="primary" size="sm" weight="bold" numberOfLines={1}>
-                        {item.name}
+                        {localText(item.name, item.nameAr)}
                       </ThemedText>
                       <ThemedText variant="tertiary" size="xs" style={styles.cartItemUnit}>
                         {formatUnit(item.unit)} · {priceWithUnit(formatPrice(item.price), item.unit)}

@@ -1,6 +1,6 @@
 import { EmptyState } from '@/components/EmptyState';
 import { ProductCard } from '@/components/ProductCard';
-import { formatCount } from '@/constants/format';
+import { formatCount, localText } from '@/constants/format';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProductListSkeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
@@ -34,7 +34,8 @@ export default function CategoryScreen() {
   const { products, total, isLoading, loadMore, isFetchingNextPage } = useProducts({ category, sort: 'name' });
 
   const chips = [{ id: 'all', name: t('cat_all') }, ...categories];
-  const title = category === 'all' ? t('allCategories') : category;
+  const current = categories.find((c) => c.id === category);
+  const title = category === 'all' ? t('allCategories') : localText(category, current?.nameAr);
 
   return (
     <ThemedView variant="primary" style={styles.container}>
@@ -57,7 +58,7 @@ export default function CategoryScreen() {
                 ]}
               >
                 <ThemedText size="xs" weight="bold" variant={active ? 'inverse' : 'tertiary'}>
-                  {c.name}
+                  {localText(c.name, 'nameAr' in c ? c.nameAr : undefined)}
                 </ThemedText>
               </TouchableOpacity>
             );
