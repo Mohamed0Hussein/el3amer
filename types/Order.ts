@@ -4,6 +4,7 @@ export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'c
 export interface OrderLineItem {
   id: number;
   name: string;
+  nameAr?: string | null;
   description?: string;
   category: string;
   unit: string;
@@ -20,7 +21,7 @@ export interface OrderLineItem {
 export interface Substitute {
   forItemId: number;
   quantity: number;
-  item: { id: number; name: string; price: number; unit: string; image?: string };
+  item: { id: number; name: string; nameAr?: string | null; price: number; unit: string; image?: string };
 }
 
 export interface OrderDriver {

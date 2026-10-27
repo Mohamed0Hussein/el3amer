@@ -10,6 +10,9 @@ const KEYWORD_ICONS: [RegExp, keyof typeof Ionicons.glyphMap][] = [
   [/drink|beverage|juice/i, 'wine-outline'],
   [/snack|chip|candy|sweet/i, 'fast-food-outline'],
   [/clean|home|household/i, 'sparkles-outline'],
+  [/herb|spice|legume|condiment/i, 'leaf-outline'],
+  [/pantry|staple|grocer/i, 'basket-outline'],
+  [/personal|care|beauty/i, 'heart-outline'],
 ];
 
 export const iconForCategory = (name: string): keyof typeof Ionicons.glyphMap => {

@@ -4,8 +4,11 @@
 export interface Product {
   id: number;
   name: string;
+  nameAr?: string | null;
   description?: string;
+  descriptionAr?: string | null;
   category: string;
+  categoryAr?: string | null;
   price: number;
   unit: string;
   // Amount per +/- tap for KG / G products (e.g. 0.25 kg); 1 for counted ones.

@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { formatQuantity, formatUnit, lineTotal, maxQuantity, stepOf, imageUrl } from '@/constants/format';
+import { formatQuantity, formatUnit, lineTotal, localText, maxQuantity, stepOf, imageUrl } from '@/constants/format';
 import { useCartContext } from '@/context/CartContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useLocalization } from '@/context/LocalizationContext';
@@ -101,12 +101,12 @@ export default function ProductDetailsScreen() {
               </ThemedText>
             </View>
             <ThemedText variant="tertiary" size="xs" style={{ textTransform: 'uppercase' }}>
-              {product.category}
+              {localText(product.category, product.categoryAr)}
             </ThemedText>
           </View>
 
           <ThemedText variant="primary" size="2xl" weight="extrabold" style={styles.name}>
-            {product.name}
+            {localText(product.name, product.nameAr)}
           </ThemedText>
 
           {product.stock <= 5 && (
@@ -128,13 +128,13 @@ export default function ProductDetailsScreen() {
             </ThemedText>
           </View>
 
-          {!!product.description && (
+          {!!localText(product.description, product.descriptionAr) && (
             <>
               <ThemedText size="sm" weight="extrabold" style={styles.aboutTitle}>
                 {t('aboutProduct')}
               </ThemedText>
               <ThemedText variant="secondary" size="sm" style={styles.description}>
-                {product.description}
+                {localText(product.description, product.descriptionAr)}
               </ThemedText>
             </>
           )}
@@ -172,7 +172,7 @@ export default function ProductDetailsScreen() {
                       <Image source={{ uri: relatedImageUrl }} style={styles.relatedThumbImage} contentFit="contain" />
                     </View>
                     <ThemedText size="xs" weight="bold" numberOfLines={1} style={{ marginTop: 8 }}>
-                      {p.name}
+                      {localText(p.name, p.nameAr)}
                     </ThemedText>
                     <ThemedText size="sm" weight="extrabold" style={{ color: theme.primary[500], marginTop: 2 }}>
                       {formatPrice(p.price)}
