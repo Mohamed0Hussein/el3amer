@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CategoryScreen() {
@@ -39,7 +39,7 @@ export default function CategoryScreen() {
 
   return (
     <ThemedView variant="primary" style={styles.container}>
-      <ScreenHeader title={title} subtitle={`${total} ${t('productsCount')}`} />
+      <ScreenHeader title={title} subtitle={isLoading ? undefined : `${total} ${t('productsCount')}`} />
 
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -67,7 +67,7 @@ export default function CategoryScreen() {
       </View>
 
       {isLoading ? (
-        <ProductListSkeleton />
+        <ProductListSkeleton padding={20} />
       ) : (
         <FlatList
           data={products}
@@ -80,7 +80,7 @@ export default function CategoryScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
-            isFetchingNextPage ? <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary[500]} /> : null
+            isFetchingNextPage ? <ProductListSkeleton rows={1} padding={0} /> : null
           }
           ListEmptyComponent={
             <EmptyState icon="search-outline" title={t('noProducts')} message={t('noProductsMessage')} />

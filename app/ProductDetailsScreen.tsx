@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { formatQuantity, formatUnit, lineTotal, localText, maxQuantity, stepOf, imageUrl } from '@/constants/format';
@@ -39,7 +40,7 @@ export default function ProductDetailsScreen() {
   const maxSteps = Math.round(maxQuantity(product) / step);
   const outOfStock = maxSteps <= 0;
 
-  const { products: sameCategory } = useProducts({ category: product.category, limit: 7 }, !!product.category);
+  const { products: sameCategory, isLoading: relatedLoading } = useProducts({ category: product.category, limit: 7 }, !!product.category);
   const relatedProducts = useMemo(
     () => sameCategory.filter((p: Product) => p.id !== product.id).slice(0, 6),
     [sameCategory, product.id],
@@ -89,7 +90,15 @@ export default function ProductDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Product image */}
         <View style={[styles.imageContainer, { backgroundColor: theme.gray[100] }]}>
-          <Image source={{ uri: photo }} style={styles.image} contentFit="cover" />
+          {/* The list's smaller copy is usually cached already, so it shows at once and the sharp one fades in over it. */}
+          <Image
+            source={{ uri: photo }}
+            placeholder={{ uri: imageUrl(product.image, 400) }}
+            placeholderContentFit="cover"
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+          />
         </View>
 
         <View style={styles.content}>
@@ -154,12 +163,19 @@ export default function ProductDetailsScreen() {
           </View>
         </View>
 
-        {relatedProducts.length > 0 && (
+        {(relatedLoading || relatedProducts.length > 0) && (
           <View style={styles.relatedSection}>
             <ThemedText variant="primary" size="base" weight="extrabold" style={styles.relatedTitle}>
               {t('youMayLike')}
             </ThemedText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedContent}>
+              {relatedLoading && [0, 1, 2].map((i) => (
+                <View key={i} style={styles.relatedCard}>
+                  <Skeleton height={88} borderRadius={14} />
+                  <Skeleton width="80%" height={11} style={{ marginTop: 10 }} />
+                  <Skeleton width="45%" height={13} style={{ marginTop: 6 }} />
+                </View>
+              ))}
               {relatedProducts.map((p: Product) => {
                 const relatedImageUrl = imageUrl(p.image, 400);
                 return (
@@ -169,7 +185,7 @@ export default function ProductDetailsScreen() {
                     onPress={() => router.push({ pathname: '/ProductDetailsScreen', params: { product: JSON.stringify(p) } })}
                   >
                     <View style={[styles.relatedThumb, { backgroundColor: theme.gray[100] }]}>
-                      <Image source={{ uri: relatedImageUrl }} style={styles.relatedThumbImage} contentFit="contain" />
+                      <Image source={{ uri: relatedImageUrl }} style={styles.relatedThumbImage} contentFit="contain" transition={200} />
                     </View>
                     <ThemedText size="xs" weight="bold" numberOfLines={1} style={{ marginTop: 8 }}>
                       {localText(p.name, p.nameAr)}

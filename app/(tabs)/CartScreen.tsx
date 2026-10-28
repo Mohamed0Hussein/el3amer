@@ -136,6 +136,7 @@ const Cart = () => {
                     }}
                     style={styles.itemThumbImage}
                     contentFit="contain"
+                    transition={200}
                   />
                 </View>
                 <View style={styles.cartItemDetails}>

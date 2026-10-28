@@ -160,6 +160,7 @@ export default function OrderDetailsScreen() {
           }}
           style={styles.itemImage}
           contentFit="contain"
+          transition={200}
         />
       </View>
       <View style={styles.itemInfo}>

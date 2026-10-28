@@ -1,6 +1,6 @@
 import { EmptyState } from '@/components/EmptyState';
 import { ProductCard } from '@/components/ProductCard';
-import { ProductListSkeleton } from '@/components/Skeleton';
+import { CategoryRowSkeleton, ProductListSkeleton, Skeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { tokens } from '@/constants/tokens';
@@ -26,7 +26,6 @@ import { Image } from 'expo-image';
 import { formatCount, imageUrl, localText } from '@/constants/format';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Platform,
   RefreshControl,
@@ -76,12 +75,12 @@ export default function HomeScreen() {
   const delivery = useMyDelivery();
   const myFee = delivery?.deliverable ? delivery.fee : null;
 
-  const { data: fetchedCategories = [] } = useQuery({
+  const { data: fetchedCategories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
   });
 
-  const { data: me } = useQuery({
+  const { data: me, isLoading: meLoading } = useQuery({
     queryKey: ['me', user?.id],
     queryFn: () => getUserInfo(String(user!.id)),
     enabled: !!user,
@@ -159,9 +158,13 @@ export default function HomeScreen() {
           <Ionicons name="location-outline" size={20} color={theme.primary[500]} />
           <View style={styles.brandText}>
             <ThemedText size="sm" weight="bold">{t('deliverTo')}</ThemedText>
-            <ThemedText variant="tertiary" size="xs" numberOfLines={1} style={styles.tagline}>
-              {address || t('setAddress')}
-            </ThemedText>
+            {meLoading ? (
+              <Skeleton width={170} height={11} style={styles.tagline} />
+            ) : (
+              <ThemedText variant="tertiary" size="xs" numberOfLines={1} style={styles.tagline}>
+                {address || t('setAddress')}
+              </ThemedText>
+            )}
           </View>
           <Ionicons name="chevron-down" size={16} color={theme.gray[400]} />
         </TouchableOpacity>
@@ -243,6 +246,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Categories */}
+      {categoriesLoading ? <CategoryRowSkeleton /> : (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -282,6 +286,7 @@ export default function HomeScreen() {
           );
         })}
       </ScrollView>
+      )}
 
       {/* Bought before (real reorder history) */}
       {reorderItems.length > 0 && (
@@ -302,7 +307,7 @@ export default function HomeScreen() {
                   style={[styles.reorderCard, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}
                 >
                   <View style={[styles.reorderThumb, { backgroundColor: theme.gray[50] }]}>
-                    <Image source={{ uri: photo }} style={styles.reorderThumbImage} contentFit="contain" />
+                    <Image source={{ uri: photo }} style={styles.reorderThumbImage} contentFit="contain" transition={200} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <ThemedText size="xs" weight="bold" numberOfLines={1}>{localText(item.name, item.nameAr)}</ThemedText>
@@ -328,9 +333,11 @@ export default function HomeScreen() {
 
       {/* Result count & sort */}
       <View style={styles.sortContainer}>
-        <ThemedText variant="tertiary" size="sm">
-          {formatCount(total)}
-        </ThemedText>
+        {isLoading ? <Skeleton width={64} height={12} /> : (
+          <ThemedText variant="tertiary" size="sm">
+            {formatCount(total)}
+          </ThemedText>
+        )}
         <View style={[styles.sortButtons, { backgroundColor: theme.background.card, borderColor: theme.gray[100] }]}>
           <TouchableOpacity
             onPress={() => setSortBy('name')}
@@ -382,7 +389,7 @@ export default function HomeScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
-            isFetchingNextPage ? <ActivityIndicator style={styles.pageSpinner} color={theme.primary[500]} /> : null
+            isFetchingNextPage ? <ProductListSkeleton rows={1} padding={0} /> : null
           }
           refreshControl={
             <RefreshControl
@@ -419,9 +426,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginHorizontal: tokens.space.xl,
     marginBottom: 12,
-  },
-  pageSpinner: {
-    marginVertical: 16,
   },
   header: {
     paddingHorizontal: tokens.space.xl,

@@ -42,7 +42,7 @@ export const ProductCard = memo(function ProductCard({ product }: { product: Pro
       ]}
     >
       <View style={[styles.imageBox, { backgroundColor: theme.gray[50] }]}>
-        <Image source={{ uri: photo }} style={styles.image} contentFit="contain" />
+        <Image source={{ uri: photo }} style={styles.image} contentFit="contain" transition={200} />
         <TouchableOpacity
           onPress={() => toggleFavorite(product.id)}
           style={styles.favBtn}
