@@ -1,4 +1,5 @@
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { Skeleton } from '@/components/Skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
@@ -66,43 +67,43 @@ export default function EditProfileScreen() {
 
   return (
     <ThemedView variant="primary" style={{ flex: 1 }}>
-      <ScreenHeader title="Edit Profile" />
+      <ScreenHeader title={t('editProfile')} />
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background.primary }]}>
         <ThemedView variant="card" style={[styles.card, { backgroundColor: theme.background.card }]}>
-          <ThemedText size="lg" weight="semibold" style={styles.label}>Full Name</ThemedText>
-          {isLoading ? <ActivityIndicator color={theme.primary[500]} /> : (
+          <ThemedText size="lg" weight="semibold" style={styles.label}>{t('fullNameLabel')}</ThemedText>
+          {isLoading ? <Skeleton height={50} borderRadius={12} /> : (
             <ThemedTextInput
               value={fullName}
               editable={!isLoading}
               onChangeText={setFullName}
               style={[styles.input, { backgroundColor: theme.gray[50], color: theme.text.primary }]}
-              placeholder="Enter your name"
+              placeholder={t('fullNamePlaceholder')}
               placeholderTextColor={theme.gray[400]}
             />
           )}
 
-          <ThemedText size="lg" weight="semibold" style={styles.label}>Email</ThemedText>
-          {isLoading ? <ActivityIndicator color={theme.primary[500]} /> : (
+          <ThemedText size="lg" weight="semibold" style={styles.label}>{t('emailLabel')}</ThemedText>
+          {isLoading ? <Skeleton height={50} borderRadius={12} /> : (
             <ThemedTextInput
               value={email}
               editable={!(data?.user?.googleAccount || false) && !isLoading}
               onChangeText={setEmail}
               keyboardType="email-address"
               style={[styles.input, { backgroundColor: theme.gray[50], color: theme.text.primary }, { opacity: data?.user?.googleAccount ? 0.5 : 1 }]}
-              placeholder="Enter your email"
+              placeholder={t('emailPlaceholder')}
               placeholderTextColor={theme.gray[400]}
             />
           )}
 
-          <ThemedText size="lg" weight="semibold" style={styles.label}>Phone</ThemedText>
-          {isLoading ? <ActivityIndicator color={theme.primary[500]} /> : (
+          <ThemedText size="lg" weight="semibold" style={styles.label}>{t('phoneLabel')}</ThemedText>
+          {isLoading ? <Skeleton height={50} borderRadius={12} /> : (
             <ThemedTextInput
               value={phone}
               editable={!isLoading}
               onChangeText={setPhone}
               keyboardType="phone-pad"
               style={[styles.input, { backgroundColor: theme.gray[50], color: theme.text.primary }]}
-              placeholder="Enter your phone"
+              placeholder={t('phonePlaceholder')}
               placeholderTextColor={theme.gray[400]}
             />
           )}
@@ -113,10 +114,10 @@ export default function EditProfileScreen() {
           onPress={handleSave}
           disabled={isUpdating || isLoading}
         >
-          {(isUpdating || isLoading) ? (
+          {isUpdating ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <ThemedText weight="semibold" style={{ color: '#fff' }}>Save Changes</ThemedText>
+            <ThemedText weight="semibold" style={{ color: '#fff', opacity: isLoading ? 0.6 : 1 }}>{t('saveChanges')}</ThemedText>
           )}
         </TouchableOpacity>
       </ScrollView>

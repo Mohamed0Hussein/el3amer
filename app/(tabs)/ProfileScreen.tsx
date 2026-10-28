@@ -46,7 +46,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
         >
           {user?.profilePicture ? (
-            <Image source={{ uri: user.profilePicture }} style={styles.avatarImage} />
+            <Image source={{ uri: user.profilePicture }} style={styles.avatarImage} transition={200} />
           ) : (
             <View style={[styles.profileAvatar, { backgroundColor: theme.primary[50] }]}>
               <Logo size={40} />

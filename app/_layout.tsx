@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo';
 import '@/lib/sentry';
 import { AppUpdates } from "@/components/AppUpdates";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -56,12 +57,12 @@ function RootNavigator() {
   const { theme, isDark } = useTheme();
   // Android only picks the bottom bar's look at launch; follow live theme switches too.
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    // APKs before 1.1.2 lack this native module; skip there instead of crashing.
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('expo-navigation-bar').setStyle(isDark ? 'dark' : 'light');
-    } catch {}
+    // APKs before 1.1.2 lack this native module. Check before loading the
+    // package: Metro reports a module that fails to load as a fatal error,
+    // even inside try/catch.
+    if (Platform.OS !== 'android' || !requireOptionalNativeModule('ExpoNavigationBar')) return;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('expo-navigation-bar').setStyle(isDark ? 'dark' : 'light');
   }, [isDark]);
   const { language } = useLocalization();
   const insets = useSafeAreaInsets();
