@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoggingOut(true);
     try {
       if (user) await unregisterPush(user.id, language);
-      // Server logout is a no-op; never let a network error keep someone signed in.
+      // The server stops accepting this token; never let a network error keep someone signed in.
       await logout(user?.token || '').catch(() => {});
       setUser(null);
       await clearSession();
