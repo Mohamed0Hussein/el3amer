@@ -3,7 +3,7 @@ import axios from './axios';
 // Backend applies a partial update — any field omitted here keeps its current value.
 export const updateUser = async (
     id: string,
-    data: { fullName?: string; email?: string; phone?: string; address?: string; latitude?: number; longitude?: number },
+    data: { fullName?: string; email?: string; currentPassword?: string; phone?: string; address?: string; latitude?: number; longitude?: number },
 ) => {
     const res = await axios.put(`/users/${id}`, data);
     return res.data;

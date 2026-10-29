@@ -31,6 +31,7 @@ export default function EditProfileScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -39,8 +40,15 @@ export default function EditProfileScreen() {
     setPhone(data?.user?.phone || '');
   }, [data]);
 
+  // Moving the account to another inbox needs the password, not just a signed-in phone.
+  const emailChanged = !!data?.user && email.trim().toLowerCase() !== data.user.email && !data.user.googleAccount;
+
   const handleSave = async () => {
     if (!user?.id) return;
+    if (emailChanged && !currentPassword) {
+      Alert.alert(t('updateFailed'), t('emailNeedsPassword'));
+      return;
+    }
 
     setIsUpdating(true);
     try {
@@ -48,6 +56,7 @@ export default function EditProfileScreen() {
         fullName,
         email,
         phone,
+        ...(emailChanged && { currentPassword }),
       });
 
 
@@ -57,9 +66,12 @@ export default function EditProfileScreen() {
       Alert.alert(t('profileUpdated'), t('profileUpdatedMessage'), [
         { text: t('ok'), onPress: () => router.back() },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert(t('updateFailed'), t('updateFailedMessage'));
+      Alert.alert(
+        t('updateFailed'),
+        error?.response?.data?.code === 'passwordRequired' ? t('emailNeedsPassword') : t('updateFailedMessage'),
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -106,6 +118,20 @@ export default function EditProfileScreen() {
               placeholder={t('phonePlaceholder')}
               placeholderTextColor={theme.gray[400]}
             />
+          )}
+
+          {emailChanged && (
+            <>
+              <ThemedText size="lg" weight="semibold" style={styles.label}>{t('currentPassword')}</ThemedText>
+              <ThemedTextInput
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                secureTextEntry
+                autoComplete="current-password"
+                style={[styles.input, { backgroundColor: theme.gray[50], color: theme.text.primary }]}
+                placeholderTextColor={theme.gray[400]}
+              />
+            </>
           )}
         </ThemedView>
 
