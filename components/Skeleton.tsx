@@ -61,8 +61,8 @@ export const ProductCardSkeleton = () => {
   );
 };
 
-// Match `padding` to the list's own side padding; under a list, as its
-// "loading more" footer, use rows={1} padding={0}.
+// Match `padding` to the list's side padding (padding={0} inside a list that
+// already pads its content); as a "loading more" footer, use rows={1}.
 export const ProductListSkeleton = ({ rows = 3, padding = 16 }: { rows?: number; padding?: number }) => (
   <View style={{ paddingHorizontal: padding }}>
     {Array.from({ length: rows }, (_, i) => (
@@ -107,7 +107,8 @@ const styles = StyleSheet.create({
   categories: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingTop: 18,
+    paddingBottom: 6,
     gap: 10,
     overflow: 'hidden',
   },
