@@ -2,6 +2,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
 import { ThemedView } from '@/components/themed-view';
+import { formatQuantity, localText } from '@/constants/format';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCartContext } from '@/context/CartContext';
@@ -56,7 +57,7 @@ export default function CheckoutScreen() {
 
   // The backend prices it all: the pin's zone fee, the promo discount, the total.
   const items = cart.map((item) => ({ itemId: Number(item.id), quantity: item.quantity }));
-  const { data: quote, refetch: requote, isFetching: quoting } = useQuery({
+  const { data: quote, refetch: requote, isFetching: quoting, error: quoteError } = useQuery({
     queryKey: ['quote', items, pin?.latitude, pin?.longitude, promo],
     queryFn: () => quoteOrder({ items, shippingLatitude: pin!.latitude, shippingLongitude: pin!.longitude, promoCode: promo ?? undefined }),
     enabled: !!pin && items.length > 0,
@@ -72,6 +73,15 @@ export default function CheckoutScreen() {
     error.error === 'minOrder'
       ? t('promoMinOrder').replace('{min}', formatPrice(error.minOrder ?? 0))
       : t(({ invalid: 'promoInvalid', expired: 'promoExpired', usedUp: 'promoUsedUp', alreadyUsed: 'promoAlreadyUsed' } as const)[error.error]);
+  // Over a product's per-customer limit (this cart plus orders not yet delivered).
+  const limitText = (data: any) => {
+    const item = cart.find((i) => Number(i.id) === data.itemId);
+    return {
+      title: t('limitTitle').replace('{name}', item ? localText(item.name, item.nameAr) : ''),
+      body: data.left > 0 ? t('limitBody').replace('{n}', formatQuantity(data.left, item?.unit)) : t('limitNone'),
+    };
+  };
+  const quoteLimit = (quoteError as any)?.response?.data?.code === 'maxPerCustomer' ? limitText((quoteError as any).response.data) : null;
   // Waits for the quote so the total shown is the one that gets charged.
   const canOrder = !!shippingAddress && !!phone && !!pin && !!quote && quote.deliverable && !closed && !quoting;
 
@@ -110,6 +120,9 @@ export default function CheckoutScreen() {
         queryClient.invalidateQueries({ queryKey: ['settings'] });
         requote();
         Alert.alert(t('storeClosedTitle'), t('storeClosedBody'));
+      } else if (data?.code === 'maxPerCustomer') {
+        const { title, body } = limitText(data);
+        Alert.alert(title, body);
       } else if (data?.promoError) {
         requote();
         Alert.alert(t('promoCode'), promoMessage(data.promoError));
@@ -166,6 +179,19 @@ export default function CheckoutScreen() {
             )}
           </TouchableOpacity>
         </View>
+        {quoteLimit && (
+          <View style={[styles.zoneWarning, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
+            <Ionicons name="alert-circle" size={18} color={theme.tint.error.strong} />
+            <View style={{ flex: 1 }}>
+              <ThemedText size="xs" weight="extrabold" style={{ color: theme.tint.error.strong }}>
+                {quoteLimit.title}
+              </ThemedText>
+              <ThemedText size="xs" style={{ color: theme.tint.error.text, marginTop: 2, lineHeight: 17 }}>
+                {quoteLimit.body}
+              </ThemedText>
+            </View>
+          </View>
+        )}
         {outsideZone && (
           <View style={[styles.zoneWarning, { backgroundColor: theme.tint.error.bg, borderColor: theme.tint.error.border }]}>
             <Ionicons name="alert-circle" size={18} color={theme.tint.error.strong} />

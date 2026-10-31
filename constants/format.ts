@@ -24,7 +24,7 @@ export const formatCount = (n: number) => {
   return form.replace('{n}', String(n));
 };
 
-type Sellable = { unit?: string; step?: number; stock: number };
+type Sellable = { unit?: string; step?: number; stock: number; maxPerCustomer?: number | null };
 
 // KG and G products are sold by weight; price is per kg / per g.
 export const isWeighted = (unit?: string) => ['KG', 'G'].includes(String(unit).toUpperCase());
@@ -34,9 +34,10 @@ export const stepOf = (p: Sellable) => (isWeighted(p.unit) ? p.step || 1 : 1);
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
-// Largest amount that is both in stock and a whole number of steps, so the
-// backend never sees e.g. 0.6 kg on a 0.25 kg step.
-export const maxQuantity = (p: Sellable) => round3(Math.floor(p.stock / stepOf(p) + 1e-9) * stepOf(p));
+// Largest amount that is in stock, within the per-customer limit and a whole
+// number of steps, so the backend never sees e.g. 0.6 kg on a 0.25 kg step.
+export const maxQuantity = (p: Sellable) =>
+  round3(Math.floor(Math.min(p.stock, p.maxPerCustomer ?? Infinity) / stepOf(p) + 1e-9) * stepOf(p));
 
 export const clampQuantity = (quantity: number, p: Sellable) => Math.min(round3(quantity), maxQuantity(p));
 
