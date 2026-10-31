@@ -389,7 +389,7 @@ export default function HomeScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
-            isFetchingNextPage ? <ProductListSkeleton rows={1} padding={0} /> : null
+            isFetchingNextPage ? <ProductListSkeleton rows={1} /> : null
           }
           refreshControl={
             <RefreshControl
@@ -535,7 +535,8 @@ const styles = StyleSheet.create({
   categoriesContent: {
     paddingHorizontal: 16,
     gap: 10,
-    paddingVertical: 6,
+    paddingTop: 18,
+    paddingBottom: 6,
   },
   categoryItem: {
     alignItems: 'center',
@@ -575,13 +576,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
+  // Side padding sits on the rows, not here, so the header keeps the same
+  // edges as while loading.
   productsContainer: {
-    paddingHorizontal: 16,
     paddingBottom: 100,
     flexGrow: 1,
   },
   productRow: {
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
 });
 
