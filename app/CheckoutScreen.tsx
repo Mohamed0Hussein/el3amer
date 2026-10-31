@@ -10,7 +10,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/hooks/useTheme';
-import { createOrder, getPaymentConfig, quoteOrder } from '@/services/orders';
+import { createOrder, getPaymentConfig, quoteOrder, setPendingPayment } from '@/services/orders';
 import { isBusy, isClosed } from '@/services/settings';
 import { PromoError } from '@/types/Order';
 import { getUserInfo } from '@/services/user';
@@ -94,7 +94,8 @@ export default function CheckoutScreen() {
 
       clearCart();
       if (paymentUrl) {
-        router.replace({ pathname: ROUTES.PAYMENT as any, params: { orderId: order.id, url: paymentUrl } });
+        setPendingPayment(order.id, paymentUrl);
+        router.replace({ pathname: ROUTES.PAYMENT as any, params: { orderId: order.id } });
       } else {
         router.replace({ pathname: ROUTES.ORDER_DETAILS as any, params: { order: JSON.stringify(order) } });
       }
