@@ -219,20 +219,20 @@ export default function OrderDetailsScreen() {
               {t(substitutes.length ? 'itemsUnavailableBodySubs' : 'itemsUnavailableBody')}
             </ThemedText>
             {unavailableItems.map((item) => {
-              const sub = substitutes.find((s) => s.forItemId === item.id);
+              const subs = substitutes.filter((s) => s.forItemId === item.id);
               return (
                 <View key={item.id} style={{ marginTop: 8 }}>
                   <ThemedText size="sm" weight="bold">
                     • {localText(item.name, item.nameAr)} ({formatQuantity(item.quantity, item.unit)})
                   </ThemedText>
-                  {sub && (
-                    <ThemedText size="xs" style={{ color: theme.tint.success.strong, marginTop: 2, marginStart: 12 }}>
+                  {subs.map((sub) => (
+                    <ThemedText key={sub.item.id} size="xs" style={{ color: theme.tint.success.strong, marginTop: 2, marginStart: 12 }}>
                       {t('substituteOffer')
                         .replace('{name}', localText(sub.item.name, sub.item.nameAr))
                         .replace('{qty}', formatQuantity(sub.quantity, sub.item.unit))
                         .replace('{price}', formatPrice(lineTotal(sub.item.price, sub.quantity)))}
                     </ThemedText>
-                  )}
+                  ))}
                 </View>
               );
             })}
@@ -251,34 +251,33 @@ export default function OrderDetailsScreen() {
                 )}
               </TouchableOpacity>
             )}
-            <View style={styles.decisionActions}>
+            {/* Full-width, one per row: each choice reads in full */}
+            {unavailableItems.length < order.items.length && (
               <TouchableOpacity
-                style={[styles.decisionBtn, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}
-                onPress={() => handleDecision('cancel')}
+                style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: theme.primary[500], borderColor: theme.primary[500] }]}
+                onPress={() => handleDecision('continue')}
                 disabled={!!deciding}
               >
-                {deciding === 'cancel' ? (
-                  <ActivityIndicator size="small" color={theme.status.error} />
+                {deciding === 'continue' ? (
+                  <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <ThemedText size="xs" weight="extrabold" style={{ color: theme.status.error }}>{t('cancelOrder')}</ThemedText>
+                  <ThemedText variant="inverse" size="xs" weight="extrabold" numberOfLines={1}>
+                    {t('continueWithout')} · {formatPrice(totalWithoutMissing)}
+                  </ThemedText>
                 )}
               </TouchableOpacity>
-              {unavailableItems.length < order.items.length && (
-                <TouchableOpacity
-                  style={[styles.decisionBtn, { backgroundColor: theme.primary[500], borderColor: theme.primary[500] }]}
-                  onPress={() => handleDecision('continue')}
-                  disabled={!!deciding}
-                >
-                  {deciding === 'continue' ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <ThemedText variant="inverse" size="xs" weight="extrabold" numberOfLines={1}>
-                      {t('continueWithout')} · {formatPrice(totalWithoutMissing)}
-                    </ThemedText>
-                  )}
-                </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}
+              onPress={() => handleDecision('cancel')}
+              disabled={!!deciding}
+            >
+              {deciding === 'cancel' ? (
+                <ActivityIndicator size="small" color={theme.status.error} />
+              ) : (
+                <ThemedText size="xs" weight="extrabold" style={{ color: theme.status.error }}>{t('cancelOrder')}</ThemedText>
               )}
-            </View>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -637,11 +636,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 16,
-  },
-  decisionActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
   },
   decisionBtn: {
     flex: 1,
