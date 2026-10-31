@@ -8,7 +8,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { queryClient } from '@/lib/queryClient';
-import { cancelOrder, confirmReceived, decideOrder, getOrderById, payOrder } from '@/services/orders';
+import { cancelOrder, confirmReceived, decideOrder, getOrderById, payOrder, setPendingPayment } from '@/services/orders';
 import { etaOf } from '@/services/settings';
 import { Order } from '@/types/Order';
 import { Ionicons } from '@expo/vector-icons';
@@ -82,14 +82,15 @@ export default function OrderDetailsScreen() {
     substitutes.reduce((sum, s) => sum + lineTotal(s.item.price, s.quantity), 0);
   const outForDelivery = order.status === 'shipped';
   const isCard = order.paymentMethod === 'card';
-  const needsPayment = isCard && order.paymentStatus !== 'paid' && order.status === 'pending';
+  const needsPayment = isCard && order.paymentStatus !== 'paid' && order.status === 'pending' && !awaitingDecision;
   const [startingPayment, setStartingPayment] = useState(false);
 
   const handlePay = async () => {
     setStartingPayment(true);
     try {
       const url = await payOrder(order.id, language);
-      router.push({ pathname: ROUTES.PAYMENT as any, params: { orderId: order.id, url, back: '1' } });
+      setPendingPayment(order.id, url);
+      router.push({ pathname: ROUTES.PAYMENT as any, params: { orderId: order.id, back: '1' } });
     } catch {
       Alert.alert(t('error'), t('paymentStartFailed'));
     } finally {

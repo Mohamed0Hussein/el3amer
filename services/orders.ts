@@ -51,6 +51,20 @@ export const payOrder = async (orderId: number, language: string): Promise<strin
   return res.data.paymentUrl;
 };
 
+// The checkout URL reaches PaymentScreen in memory, never as a route param,
+// so a deep link can't make the payment screen load some other page.
+let pendingPayment: { orderId: number; url: string } | null = null;
+
+export const setPendingPayment = (orderId: number, url: string) => {
+  pendingPayment = { orderId, url };
+};
+
+export const takePendingPayment = (orderId: number): string | undefined => {
+  const url = pendingPayment?.orderId === orderId ? pendingPayment.url : undefined;
+  pendingPayment = null;
+  return url;
+};
+
 /**
  * Get all orders for the current user
  */
