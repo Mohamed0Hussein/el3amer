@@ -15,6 +15,8 @@ export interface Product {
   step?: number;
   image?: string;
   stock: number;
+  // Most one customer may have in orders not yet delivered; null = no limit.
+  maxPerCustomer?: number | null;
   isActive?: boolean;
   category_icon?: string;
 }

@@ -118,13 +118,22 @@ export default function ProductDetailsScreen() {
             {localText(product.name, product.nameAr)}
           </ThemedText>
 
-          {product.stock <= 5 && (
+          {(product.stock <= 5 || !!product.maxPerCustomer) && (
             <View style={styles.ratingRow}>
-              <View style={[styles.pill, { backgroundColor: theme.tint.warning.bg }]}>
-                <ThemedText size="xs" weight="bold" style={{ color: theme.tint.warning.strong }}>
-                  {outOfStock ? t('outOfStock') : t('onlyLeft').replace('{n}', formatQuantity(product.stock, product.unit))}
-                </ThemedText>
-              </View>
+              {product.stock <= 5 && (
+                <View style={[styles.pill, { backgroundColor: theme.tint.warning.bg }]}>
+                  <ThemedText size="xs" weight="bold" style={{ color: theme.tint.warning.strong }}>
+                    {outOfStock ? t('outOfStock') : t('onlyLeft').replace('{n}', formatQuantity(product.stock, product.unit))}
+                  </ThemedText>
+                </View>
+              )}
+              {!!product.maxPerCustomer && !outOfStock && (
+                <View style={[styles.pill, { backgroundColor: theme.tint.warning.bg }]}>
+                  <ThemedText size="xs" weight="bold" style={{ color: theme.tint.warning.strong }}>
+                    {t('maxPerCustomer').replace('{n}', formatQuantity(product.maxPerCustomer, product.unit))}
+                  </ThemedText>
+                </View>
+              )}
             </View>
           )}
 
