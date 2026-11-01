@@ -90,6 +90,7 @@ export const translations = {
     itemsUnavailableBody: "The store couldn't find these items. Complete the order without them, or cancel it.",
     unavailable: 'Unavailable',
     continueWithout: 'Complete without missing items',
+    nothingLeftToDeliver: 'Every item in this order is missing, so there is nothing to complete without them. Accept the substitutes or cancel.',
     // Order tracking
     status_pending: 'Order received',
     status_confirmed: 'Being prepared',
@@ -406,6 +407,7 @@ export const translations = {
     itemsUnavailableBody: 'لم يجد المتجر هذه المنتجات. يمكنك المتابعة بدونها أو إلغاء الطلب.',
     unavailable: 'غير متوفر',
     continueWithout: 'إكمال الطلب بدون الناقص',
+    nothingLeftToDeliver: 'كل منتجات هذا الطلب ناقصة، فلا يوجد ما يُكمل بدونها. اقبل البدائل أو ألغِ الطلب.',
     // Order tracking
     status_pending: 'تم استلام الطلب',
     status_confirmed: 'قيد التحضير',

@@ -252,7 +252,7 @@ export default function OrderDetailsScreen() {
               </TouchableOpacity>
             )}
             {/* Full-width, one per row: each choice reads in full */}
-            {unavailableItems.length < order.items.length && (
+            {unavailableItems.length < order.items.length ? (
               <TouchableOpacity
                 style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: theme.primary[500], borderColor: theme.primary[500] }]}
                 onPress={() => handleDecision('continue')}
@@ -266,6 +266,11 @@ export default function OrderDetailsScreen() {
                   </ThemedText>
                 )}
               </TouchableOpacity>
+            ) : (
+              // Every item is missing: without them there is nothing to deliver.
+              <ThemedText size="xs" style={{ marginTop: 12, lineHeight: 18, color: theme.tint.warning.text }}>
+                {t('nothingLeftToDeliver')}
+              </ThemedText>
             )}
             <TouchableOpacity
               style={[styles.decisionBtn, styles.decisionWide, { backgroundColor: theme.background.card, borderColor: theme.gray[200] }]}
