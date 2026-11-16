@@ -313,7 +313,7 @@ export default function CheckoutScreen() {
           )}
           <View style={styles.summaryRow}>
             <ThemedText variant="tertiary" size="sm">
-              {t('deliveryFee')}{quote?.zoneName ? ` · ${quote.zoneName}` : ''}
+              {t('deliveryFee')}
             </ThemedText>
             <ThemedText size="sm" weight="bold" style={fee === 0 ? { color: theme.status.success } : undefined}>
               {fee === undefined ? '…' : fee > 0 ? formatPrice(fee) : t('free')}

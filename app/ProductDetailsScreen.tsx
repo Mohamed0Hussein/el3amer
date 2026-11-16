@@ -212,7 +212,7 @@ export default function ProductDetailsScreen() {
 
       {/* Footer / Add to Cart */}
       <View style={[styles.footer, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100], paddingBottom: insets.bottom + 18 }]}>
-        <View style={[styles.stepper, { backgroundColor: theme.primary[500] }]}>
+        <View style={[styles.stepper, { backgroundColor: outOfStock ? theme.gray[300] : theme.primary[500] }]} pointerEvents={outOfStock ? 'none' : 'auto'}>
           <TouchableOpacity style={styles.stepperBtn} onPress={handleDecrease} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <ThemedText variant="inverse" size="lg" weight="extrabold">−</ThemedText>
           </TouchableOpacity>
@@ -229,16 +229,22 @@ export default function ProductDetailsScreen() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity
-          style={[styles.addToCartBtn, { backgroundColor: theme.primary[500], shadowColor: theme.primary[700] }]}
+          style={[
+            styles.addToCartBtn,
+            { backgroundColor: outOfStock ? theme.gray[300] : theme.primary[500], shadowColor: theme.primary[700] },
+            outOfStock && { elevation: 0, shadowOpacity: 0 },
+          ]}
           onPress={handleAddToCart}
           disabled={outOfStock}
         >
           <ThemedText variant="inverse" weight="extrabold" size="base">
-            {t('addToCart')}
+            {outOfStock ? t('outOfStock') : t('addToCart')}
           </ThemedText>
-          <ThemedText variant="inverse" weight="bold" size="base" style={{ marginLeft: 4 }}>
-            · {formatPrice(lineTotal(product.price, amount))}
-          </ThemedText>
+          {!outOfStock && (
+            <ThemedText variant="inverse" weight="bold" size="base" style={{ marginLeft: 4 }}>
+              · {formatPrice(lineTotal(product.price, amount))}
+            </ThemedText>
+          )}
         </TouchableOpacity>
       </View>
     </ThemedView>

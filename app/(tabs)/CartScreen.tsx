@@ -185,7 +185,7 @@ const Cart = () => {
           />
 
           {/* Checkout */}
-          <View style={[styles.checkoutContainer, { backgroundColor: theme.background.secondary, borderColor: theme.gray[100], paddingBottom: 16 }]}>
+          <View style={[styles.checkoutContainer, { paddingBottom: 16 }]}>
             <TouchableOpacity
               style={[
                 styles.checkoutButton,
@@ -193,10 +193,10 @@ const Cart = () => {
               ]}
               onPress={handleCheckout}
             >
-              <ThemedText variant="inverse" size="base" weight="extrabold">
+              <ThemedText variant="inverse" size="sm" weight="extrabold">
                 {t('proceedToCheckout')}
               </ThemedText>
-              <ThemedText variant="inverse" size="base" weight="bold" style={styles.checkoutTotal}>
+              <ThemedText variant="inverse" size="sm" weight="bold" style={styles.checkoutTotal}>
                 · {formatPrice(total)}
               </ThemedText>
             </TouchableOpacity>
@@ -320,15 +320,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopWidth: 1,
     paddingHorizontal: 18,
     paddingTop: 14,
   },
   checkoutButton: {
+    alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 24,
     borderRadius: 999,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
