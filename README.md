@@ -21,8 +21,8 @@ Android first; built with Expo SDK 54, React Native 0.81 and Expo Router.
 | Project | What it is |
 | --- | --- |
 | `el3amer` (this repo) | Customer app |
-| `el3amer-store` | Staff-only app: orders, drivers (WhatsApp), products, store settings |
-| `el3amer-backend` | Express + Postgres API on Vercel, live at https://el3amer-backend.vercel.app |
+| [`el3amer-store`](https://github.com/Mohamed0Hussein/el3amer-store) | Staff-only app: orders, drivers (WhatsApp), products, store settings |
+| `el3amer-backend` (private) | Express + Postgres API on Vercel, live at https://el3amer-backend.vercel.app |
 
 The app only talks to the backend; it never touches the database directly.
 
@@ -47,14 +47,10 @@ Requirements: Node 20.19+, npm, Android Studio (emulator or a device with USB de
 npm ci
 ```
 
-Create `.env` in the project root:
+Copy `.env.example` to `.env` and fill it in:
 
 ```bash
-EXPO_PUBLIC_API_URL=https://el3amer-backend.vercel.app
-EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID=
-EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS=
-EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB=
-EXPO_PUBLIC_SENTRY_DSN=
+cp .env.example .env
 ```
 
 `EXPO_PUBLIC_API_URL` falls back to `expo.extra.apiUrl` in `app.json`. Point it at a local backend (for example `http://192.168.1.10:3000`) to develop against your own server. Never commit `.env`.
@@ -114,3 +110,9 @@ config/env.ts   Resolves the API URL
 ```
 
 Release-only setup (Kashier, Brevo, Firebase, map tiles) is tracked in [SHIPPING_CHECKLIST.md](SHIPPING_CHECKLIST.md).
+
+## License
+
+The code is released under the [MIT License](LICENSE).
+
+The El3amer name, logo and app icons belong to the El3amer store and are not covered by the license. Use your own branding if you build on this code.
