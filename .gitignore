@@ -47,3 +47,6 @@ app-example
 # local-only notes
 /SHIPPING_CHECKLIST.md
 .vercel
+
+# Firebase config: supplied to EAS builds as the GOOGLE_SERVICES_JSON secret file
+google-services.json
