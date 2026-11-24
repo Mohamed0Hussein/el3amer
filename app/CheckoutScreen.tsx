@@ -1,3 +1,4 @@
+import { OrderReview } from '@/components/OrderReview';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedTextInput } from '@/components/themed-textinput';
@@ -34,6 +35,7 @@ export default function CheckoutScreen() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [isPlacing, setIsPlacing] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const [promoInput, setPromoInput] = useState('');
   const [promo, setPromo] = useState<string | null>(null);
 
@@ -86,7 +88,7 @@ export default function CheckoutScreen() {
   const canOrder = !!shippingAddress && !!phone && !!pin && !!quote && quote.deliverable && !closed && !quoting;
 
   const handleConfirm = async () => {
-    if (!user || cart.length === 0 || !canOrder) return;
+    if (!user || cart.length === 0 || !canOrder) return setReviewing(false);
 
     setIsPlacing(true);
     try {
@@ -131,6 +133,7 @@ export default function CheckoutScreen() {
       }
     } finally {
       setIsPlacing(false);
+      setReviewing(false);
     }
   };
 
@@ -336,7 +339,7 @@ export default function CheckoutScreen() {
             { backgroundColor: theme.primary[500], shadowColor: theme.primary[700] },
             (isPlacing || !canOrder) && { opacity: 0.7 },
           ]}
-          onPress={handleConfirm}
+          onPress={() => setReviewing(true)}
           disabled={isPlacing || !canOrder}
         >
           {isPlacing ? (
@@ -351,6 +354,22 @@ export default function CheckoutScreen() {
           )}
         </TouchableOpacity>
       </View>
+      {!!quote && !!shippingAddress && !!phone && (
+        <OrderReview
+          visible={reviewing}
+          placing={isPlacing}
+          items={cart}
+          subtotal={cartTotal}
+          discount={discount}
+          fee={fee ?? 0}
+          total={total}
+          address={shippingAddress!}
+          phone={phone!}
+          payment={method === 'card' ? t('payWithCard') : t('cashOnDelivery')}
+          onBack={() => setReviewing(false)}
+          onConfirm={handleConfirm}
+        />
+      )}
     </ThemedView>
   );
 }

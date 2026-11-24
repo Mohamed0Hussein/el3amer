@@ -6,10 +6,12 @@ import { ZoneShape } from '@/services/zones';
 
 export type PinMapHandle = { moveTo: (p: Point) => void };
 
-// Free map: Leaflet + OpenStreetMap tiles in a WebView — no API key, no billing.
-// OSM's tile policy wants attribution (bottom-right) and light use.
-// ponytail: public OSM tiles; swap the tile URL for a hosted provider's free
-// tier (MapTiler / Stadia) if traffic grows.
+// Free map: Leaflet in a WebView. Tiles come from EXPO_PUBLIC_MAP_TILES_URL
+// (a hosted provider with a key, e.g. MapTiler:
+// https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=KEY) and
+// fall back to public OpenStreetMap tiles, whose policy only allows light use.
+const TILES = process.env.EXPO_PUBLIC_MAP_TILES_URL?.trim() || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIBUTION = TILES.includes('maptiler') ? '&copy; MapTiler &copy; OpenStreetMap' : '&copy; OpenStreetMap';
 // zoom null = no saved pin yet: frame the whole delivery zone instead.
 const buildHtml = (p: Point, zoom: number | null) => `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -18,8 +20,8 @@ const buildHtml = (p: Point, zoom: number | null) => `<!DOCTYPE html><html><head
 <style>html,body,#map{margin:0;height:100%;background:#EDE6DD}</style>
 </head><body><div id="map"></div><script>
 var map = L.map('map', { zoomControl: false }).setView([${p.latitude}, ${p.longitude}], ${zoom ?? 17});
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '&copy; OpenStreetMap'
+L.tileLayer(${JSON.stringify(TILES)}, {
+  maxZoom: 19, attribution: '${ATTRIBUTION}'
 }).addTo(map);
 // Until the store draws its zones: the old circle around the store (radius in metres).
 var zones = L.featureGroup([L.circle([${DELIVERY_ZONE.center.latitude}, ${DELIVERY_ZONE.center.longitude}], {

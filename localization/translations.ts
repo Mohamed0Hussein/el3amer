@@ -56,6 +56,10 @@ export const translations = {
     free: 'Free',
     confirmOrder: 'Confirm order',
     changeAddress: 'Change',
+    reviewTitle: 'Check your order',
+    reviewHint: 'Sending your order in {s} s',
+    reviewEdit: 'Go back',
+    reviewLooksGood: 'Looks good',
     // Home extras
     boughtBefore: 'Bought before',
     add: 'Add',
@@ -373,6 +377,10 @@ export const translations = {
     free: 'مجانًا',
     confirmOrder: 'تأكيد الطلب',
     changeAddress: 'تغيير',
+    reviewTitle: 'راجع طلبك',
+    reviewHint: 'سيُرسل طلبك خلال {s} ثانية',
+    reviewEdit: 'رجوع',
+    reviewLooksGood: 'تمام',
     // Home extras
     boughtBefore: 'اشتريتها سابقًا',
     add: 'أضف',
