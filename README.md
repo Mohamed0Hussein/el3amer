@@ -83,6 +83,8 @@ EAS profiles live in `eas.json`:
 npx eas-cli build --platform android --profile preview
 ```
 
+To build without using EAS build quota, run the **Android APK** workflow from the Actions tab. It runs `eas build --local` on GitHub, signs with the same EAS keystore, and attaches the APK to a `v<version>` release. It needs the `EXPO_TOKEN` repository secret.
+
 After a new APK, update `RELEASES` in the backend's `routes/appVersion.js` (latest version, minimum version, download URL) so older installs are told to update.
 
 ### Over-the-air updates
